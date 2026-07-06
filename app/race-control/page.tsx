@@ -18,8 +18,8 @@ type ReleasedLog = {
 
 type LiveAudioEvent = {
   id: string
-  teamNumber: string
   src: string
+  volume: number
 }
 
 const RELEASE_GRID_KEY = "prt-endurance-release-grid"
@@ -111,16 +111,22 @@ export default function RaceControlPage() {
   }, [running])
 
   function playAudio(src: string, volume = 0.35) {
+  setLiveAudioEvent({
+    id: `${Date.now()}-${Math.random()}`,
+    src,
+    volume,
+  })
+
   return new Promise<void>((resolve) => {
     const audio = new Audio(src)
     audio.volume = volume
 
-      audio.onended = () => resolve()
-      audio.onerror = () => resolve()
+    audio.onended = () => resolve()
+    audio.onerror = () => resolve()
 
-      audio.play().catch(() => resolve())
-    })
-  }
+    audio.play().catch(() => resolve())
+  })
+}
 
   function playNextAudio() {
     if (audioPlayingRef.current) return
@@ -217,15 +223,10 @@ await new Promise((r) => setTimeout(r, 200))
 
       
 
-const audioSrc = `/audio/team-${team.teamNumber}.mp3`
-
-enqueueAudio(audioSrc, AUDIO_VOLUME.teamVoice)
-
-setLiveAudioEvent({
-  id: `${team.teamNumber}-${Date.now()}`,
-  teamNumber: team.teamNumber,
-  src: audioSrc,
-})
+enqueueAudio(
+  `/audio/team-${team.teamNumber}.mp3`,
+  AUDIO_VOLUME.teamVoice
+)
 
       heartbeatSinceLastTeamRef.current = false
 
@@ -267,7 +268,7 @@ setLiveAudioEvent({
     },
     body: JSON.stringify(payload),
   }).catch(() => {})
-}, [running, timerMs, activeTeam, nextTeam, liveAudioEvent])
+}, [running, activeTeam, nextTeam, liveAudioEvent])
 
   useEffect(() => {
     if (!running) return
