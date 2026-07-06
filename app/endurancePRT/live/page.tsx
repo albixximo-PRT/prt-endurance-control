@@ -41,10 +41,9 @@ export default function EnduranceLivePage() {
   }, [audioEnabled, state?.audioEvent])
 
   const shownTeam =
-    state?.activeTeam?.teamNumber ||
-    state?.audioEvent?.teamNumber ||
-    state?.nextTeam?.teamNumber ||
-    "--"
+  state?.activeTeam?.teamNumber ||
+  state?.nextTeam?.teamNumber ||
+  "--"
 
   const nextTeam = state?.nextTeam?.teamNumber || "--"
   const isGo = Boolean(state?.activeTeam)
