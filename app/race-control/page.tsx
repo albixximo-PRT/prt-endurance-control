@@ -16,6 +16,12 @@ type ReleasedLog = {
   spokenText: string
 }
 
+type LiveAudioEvent = {
+  id: string
+  teamNumber: string
+  src: string
+}
+
 const RELEASE_GRID_KEY = "prt-endurance-release-grid"
 const TEAM_CALL_LEAD_MS = 1000
 const AUDIO_VOLUME = {
@@ -60,6 +66,7 @@ export default function RaceControlPage() {
   const [releasedTeams, setReleasedTeams] = useState<string[]>([])
   const [releasedLog, setReleasedLog] = useState<ReleasedLog[]>([])
   const [spokenTeams, setSpokenTeams] = useState<string[]>([])
+  const [liveAudioEvent, setLiveAudioEvent] = useState<LiveAudioEvent | null>(null)
 
   const startRef = useRef<number | null>(null)
 
@@ -210,10 +217,15 @@ await new Promise((r) => setTimeout(r, 200))
 
       
 
-enqueueAudio(
-  `/audio/team-${team.teamNumber}.mp3`,
-  AUDIO_VOLUME.teamVoice
-)
+const audioSrc = `/audio/team-${team.teamNumber}.mp3`
+
+enqueueAudio(audioSrc, AUDIO_VOLUME.teamVoice)
+
+setLiveAudioEvent({
+  id: `${team.teamNumber}-${Date.now()}`,
+  teamNumber: team.teamNumber,
+  src: audioSrc,
+})
 
       heartbeatSinceLastTeamRef.current = false
 
@@ -227,6 +239,35 @@ enqueueAudio(
   )
 
   const nextTeam = nextTeams[0] || null
+  useEffect(() => {
+  const payload = {
+    running,
+    timerMs,
+    status: activeTeam ? "GO" : running ? "WAITING" : "READY",
+    activeTeam: activeTeam
+      ? {
+          teamNumber: activeTeam.teamNumber,
+          releaseTime: activeTeam.releaseTime,
+        }
+      : null,
+    nextTeam: nextTeam
+      ? {
+          teamNumber: nextTeam.teamNumber,
+          releaseTime: nextTeam.releaseTime,
+        }
+      : null,
+    audioEvent: liveAudioEvent,
+    updatedAt: Date.now(),
+  }
+
+  fetch("/api/endurance-live", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  }).catch(() => {})
+}, [running, timerMs, activeTeam, nextTeam, liveAudioEvent])
 
   useEffect(() => {
     if (!running) return
