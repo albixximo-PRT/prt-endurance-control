@@ -1,65 +1,839 @@
-import Image from "next/image";
+"use client"
+
+import { useEffect, useMemo, useRef, useState } from "react"
+import LappedTimeInput, { type ManualTimeParts } from "@/components/LappedTimeInput"
+
+type ExtractedRow = {
+  posizione: number
+  pilota: string
+  distacco: string
+  tempoTotale: string
+  teamNumber?: string
+
+  fastestLap?: string
+  lapsDown?: number
+  manualTime?: ManualTimeParts
+  calculatedGap?: string
+}
+
+type TeamRow = {
+  id: string
+  numeroTeam: string
+  nomeTeam: string
+  pilotaLobby1: string
+  pilotaLobby2: string
+  pilotaLobby3: string
+}
+
+type ReleaseRow = {
+  teamNumber: string
+  teamName: string
+  position: number
+  pilot: string
+  releaseTime: string
+  
+}
+
+const TEAMS_STORAGE_KEY = "prt-endurance-control-teams"
+
+function normalizeName(value: string) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+}
+
+function levenshteinDistance(a: string, b: string): number {
+  const aa = String(a || "")
+  const bb = String(b || "")
+
+  if (aa === bb) return 0
+  if (!aa.length) return bb.length
+  if (!bb.length) return aa.length
+
+  const matrix = Array.from({ length: aa.length + 1 }, () =>
+    Array(bb.length + 1).fill(0)
+  )
+
+  for (let i = 0; i <= aa.length; i++) matrix[i][0] = i
+  for (let j = 0; j <= bb.length; j++) matrix[0][j] = j
+
+  for (let i = 1; i <= aa.length; i++) {
+    for (let j = 1; j <= bb.length; j++) {
+      const cost = aa[i - 1] === bb[j - 1] ? 0 : 1
+
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1,
+        matrix[i][j - 1] + 1,
+        matrix[i - 1][j - 1] + cost
+      )
+    }
+  }
+
+  return matrix[aa.length][bb.length]
+}
+
+function computePilotSimilarityScore(rawName: string, officialName: string) {
+  const raw = normalizeName(rawName)
+  const official = normalizeName(officialName)
+
+  if (!raw || !official) return 0
+  if (raw === official) return 1
+
+  const rawInOfficial = official.includes(raw)
+  const officialInRaw = raw.includes(official)
+
+  if (rawInOfficial || officialInRaw) {
+    const shorter = Math.min(raw.length, official.length)
+    const longer = Math.max(raw.length, official.length)
+    const ratio = shorter / longer
+
+    if (shorter >= 5 && ratio >= 0.45) {
+      return 0.96 + Math.min(0.03, ratio * 0.03)
+    }
+  }
+
+  const distance = levenshteinDistance(raw, official)
+  const maxLen = Math.max(raw.length, official.length)
+
+  let score = 1 - distance / maxLen
+
+  if (raw[0] === official[0]) score += 0.02
+  if (raw.slice(0, 4) === official.slice(0, 4)) score += 0.03
+  if (raw.slice(-2) === official.slice(-2)) score += 0.02
+
+  return Math.min(score, 0.99)
+}
+
+function createEmptyTeam(): TeamRow {
+  return {
+    id: crypto.randomUUID(),
+    numeroTeam: "",
+    nomeTeam: "",
+    pilotaLobby1: "",
+    pilotaLobby2: "",
+    pilotaLobby3: "",
+  }
+}
+
+function parseReleaseTimeToMs(value: string) {
+  const clean = String(value || "")
+    .replace("+", "")
+    .trim()
+
+  const mmss = clean.match(/^(\d+):(\d{2})\.(\d{3})$/)
+  if (mmss) {
+    return (
+      Number(mmss[1]) * 60_000 +
+      Number(mmss[2]) * 1_000 +
+      Number(mmss[3])
+    )
+  }
+
+  const ss = clean.match(/^(\d+)\.(\d{3})$/)
+  if (ss) {
+    return Number(ss[1]) * 1_000 + Number(ss[2])
+  }
+
+  return 0
+}
+
+function parseFullTimeToMs(value: string) {
+  const clean = String(value || "")
+    .replace("+", "")
+    .trim()
+
+  const hhmmss = clean.match(/^(\d+):(\d{2}):(\d{2})\.(\d{3})$/)
+  if (hhmmss) {
+    return (
+      Number(hhmmss[1]) * 3_600_000 +
+      Number(hhmmss[2]) * 60_000 +
+      Number(hhmmss[3]) * 1_000 +
+      Number(hhmmss[4])
+    )
+  }
+
+  const mmss = clean.match(/^(\d+):(\d{2})\.(\d{3})$/)
+  if (mmss) {
+    return (
+      Number(mmss[1]) * 60_000 +
+      Number(mmss[2]) * 1_000 +
+      Number(mmss[3])
+    )
+  }
+
+  return 0
+}
+
+function formatFullGap(ms: number) {
+  const safe = Math.max(0, Math.floor(ms))
+
+  const minutes = Math.floor(safe / 60_000)
+  const seconds = Math.floor((safe % 60_000) / 1_000)
+  const millis = safe % 1_000
+
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}.${String(millis).padStart(3, "0")}`
+}
+
+function calculateLappedGap(
+  manualTotalTime: string,
+  lapsDown: number,
+  winnerFastestLap: string,
+  winnerTotalTime: string,
+  correctionSeconds: string
+) {
+  const manualTotalMs = parseFullTimeToMs(manualTotalTime)
+  const winnerFastestLapMs = parseFullTimeToMs(winnerFastestLap)
+  const winnerTotalMs = parseFullTimeToMs(winnerTotalTime)
+  const correctionMs = Math.round(Number(correctionSeconds.replace(",", ".")) * 1000)
+
+  if (!manualTotalMs || !lapsDown || !winnerFastestLapMs || !winnerTotalMs) {
+    return ""
+  }
+
+  const gapMs =
+    manualTotalMs +
+    lapsDown * (winnerFastestLapMs + correctionMs) -
+    winnerTotalMs
+
+  if (gapMs <= 0) return ""
+
+  return formatFullGap(gapMs)
+}
+
+function manualTimePartsToFullTime(value?: ManualTimeParts) {
+  if (!value) return ""
+
+  const hh = value.hh.padStart(2, "0")
+  const mm = value.mm.padStart(2, "0")
+  const ss = value.ss.padStart(2, "0")
+  const ms = value.ms.padStart(3, "0")
+
+  if (
+    value.hh.length !== 2 ||
+    value.mm.length !== 2 ||
+    value.ss.length !== 2 ||
+    value.ms.length !== 3
+  ) {
+    return ""
+  }
+
+  return `${hh}:${mm}:${ss}.${ms}`
+}
+
+function formatTimer(ms: number) {
+  const safe = Math.max(0, Math.floor(ms))
+
+  const minutes = Math.floor(safe / 60_000)
+  const seconds = Math.floor((safe % 60_000) / 1_000)
+  const millis = safe % 1_000
+
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}.${String(millis).padStart(3, "0")}`
+}
 
 export default function Home() {
+  const [files, setFiles] = useState<File[]>([])
+  const [rows, setRows] = useState<ExtractedRow[]>([])
+  const [teams, setTeams] = useState<TeamRow[]>([])
+  const [debugText, setDebugText] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [timerMs, setTimerMs] = useState(0)
+  const [lappedCorrectionSeconds, setLappedCorrectionSeconds] = useState("3.000")
+const [timerRunning, setTimerRunning] = useState(false)
+const timerStartRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(TEAMS_STORAGE_KEY)
+      if (saved) setTeams(JSON.parse(saved))
+    } catch {
+      setTeams([])
+    }
+  }, [])
+
+  useEffect(() => {
+    localStorage.setItem(TEAMS_STORAGE_KEY, JSON.stringify(teams))
+  }, [teams])
+
+  useEffect(() => {
+  if (!timerRunning) return
+
+  const interval = window.setInterval(() => {
+    if (timerStartRef.current == null) return
+    setTimerMs(Date.now() - timerStartRef.current)
+  }, 25)
+
+  return () => window.clearInterval(interval)
+}, [timerRunning])
+
+  function findTeamNumberByPilot(pilotName: string) {
+  const candidates = teams.flatMap((team) =>
+    [
+      team.pilotaLobby1,
+      team.pilotaLobby2,
+      team.pilotaLobby3,
+    ]
+      .filter(Boolean)
+      .map((pilot) => ({
+        pilot,
+        teamNumber: team.numeroTeam,
+        score: computePilotSimilarityScore(pilotName, pilot),
+      }))
+  )
+
+  const ranked = candidates.sort((a, b) => b.score - a.score)
+
+  const best = ranked[0]
+  const second = ranked[1]
+
+  if (!best) return ""
+
+  const normalizedPilot = normalizeName(pilotName)
+  const normalizedBest = normalizeName(best.pilot)
+
+  const exact = normalizedPilot === normalizedBest
+  const contained =
+    normalizedBest.includes(normalizedPilot) ||
+    normalizedPilot.includes(normalizedBest)
+
+  const gap = second ? best.score - second.score : 1
+
+  const isSafeMatch =
+    exact ||
+    best.score >= 0.96 ||
+    (contained && normalizedPilot.length >= 5 && best.score >= 0.90) ||
+    (best.score >= 0.88 && gap >= 0.06)
+
+  return isSafeMatch ? best.teamNumber : ""
+}
+
+  function updateTeam(
+    id: string,
+    field: keyof TeamRow,
+    value: string
+  ) {
+    setTeams((prev) =>
+      prev.map((team) =>
+        team.id === id ? { ...team, [field]: value } : team
+      )
+    )
+  }
+
+  function removeTeam(id: string) {
+    setTeams((prev) => prev.filter((team) => team.id !== id))
+  }
+
+  function updateResult(
+    posizione: number,
+    field: keyof ExtractedRow,
+    value: string
+  ) {
+    setRows((prev) =>
+      prev.map((row) =>
+        row.posizione === posizione ? { ...row, [field]: value } : row
+      )
+    )
+  }
+
+  function updateManualTime(posizione: number, next: ManualTimeParts) {
+  setRows((prev) =>
+    prev.map((row) =>
+      row.posizione === posizione
+        ? { ...row, manualTime: next }
+        : row
+    )
+  )
+}
+
+  function rematchTeams() {
+  setRows((prev) =>
+    prev.map((row) => ({
+      ...row,
+      teamNumber: findTeamNumberByPilot(row.pilota),
+    }))
+  )
+}
+
+const rowsWithCalculatedGap = useMemo<ExtractedRow[]>(() => {
+  const winner = rows.find((row) => row.posizione === 1)
+
+  if (!winner) return rows
+
+  return rows.map((row) => {
+    const manualTotalTime = manualTimePartsToFullTime(row.manualTime)
+
+    const calculatedGap = row.lapsDown
+      ? calculateLappedGap(
+          manualTotalTime,
+          row.lapsDown,
+          winner.fastestLap || "",
+          winner.tempoTotale || "",
+          lappedCorrectionSeconds
+        )
+      : ""
+
+    return {
+      ...row,
+      calculatedGap,
+    }
+  })
+}, [rows, lappedCorrectionSeconds])
+
+const releaseGrid = useMemo<ReleaseRow[]>(() => {
+  const map = new Map<string, ReleaseRow>()
+
+  for (const row of rowsWithCalculatedGap) {
+    const teamNumber = (row.teamNumber || "").trim()
+    if (!teamNumber) continue
+
+    const team = teams.find((t) => t.numeroTeam === teamNumber)
+    const existing = map.get(teamNumber)
+
+    if (!existing || row.posizione < existing.position) {
+      map.set(teamNumber, {
+        teamNumber,
+        teamName: team?.nomeTeam || "",
+        position: row.posizione,
+        pilot: row.pilota,
+        releaseTime:
+  row.posizione === 1
+    ? "00:00.000"
+    : row.calculatedGap ||
+      formatTimer(parseReleaseTimeToMs(row.distacco)),
+      })
+    }
+  }
+
+  return Array.from(map.values()).sort((a, b) => a.position - b.position)
+}, [rowsWithCalculatedGap, teams])
+
+async function handleExtract() {
+    if (!files.length) {
+      setError("Carica almeno uno screen gara.")
+      return
+    }
+
+    setLoading(true)
+    setError("")
+    setRows([])
+    setDebugText("")
+
+    try {
+      const fd = new FormData()
+      files.forEach((file) => fd.append("files", file))
+
+      const res = await fetch("/api/extract", {
+        method: "POST",
+        body: fd,
+      })
+
+      const data = await res.json()
+
+      if (!res.ok || !data.ok) {
+        setError(data.error || "Errore estrazione")
+        setDebugText(data.debugText || JSON.stringify(data, null, 2))
+        return
+      }
+
+      const extractedRows: ExtractedRow[] = data.rows || []
+
+      const rowsWithTeams = extractedRows.map((row) => ({
+        ...row,
+        teamNumber: findTeamNumberByPilot(row.pilota),
+      }))
+
+      setRows(rowsWithTeams)
+
+setDebugText(
+  (data.debugText || "") +
+  "\n\n====================\n\nROWS:\n\n" +
+  JSON.stringify(rowsWithTeams, null, 2)
+)
+    } catch (err) {
+      setError(String(err))
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
+    <main className="min-h-screen bg-zinc-950 text-white p-8">
+      <h1 className="text-4xl font-black mb-2">
+        PRT Endurance Control
+      </h1>
+
+      <p className="text-zinc-400 mb-8">
+        Upload screen gara GT7 P1-P8 e P9-P14.
+      </p>
+
+      <section className="rounded-2xl border border-white/10 bg-white/5 p-5 mb-6">
+        <h2 className="text-xl font-bold mb-4">1. Gestione Team</h2>
+
+        <button
+          onClick={() => setTeams((prev) => [...prev, createEmptyTeam()])}
+          className="mb-4 rounded-xl bg-white px-4 py-2 font-black text-black"
+        >
+          + Aggiungi Team
+        </button>
+
+        {!teams.length ? (
+          <p className="text-zinc-500">Nessun team inserito.</p>
+        ) : (
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="text-left text-zinc-400">
+                <th className="border-b border-white/10 p-2">Numero Team</th>
+                <th className="border-b border-white/10 p-2">Nome Team</th>
+                <th className="border-b border-white/10 p-2">Pilota Lobby 1</th>
+                <th className="border-b border-white/10 p-2">Pilota Lobby 2</th>
+                <th className="border-b border-white/10 p-2">Pilota Lobby 3</th>
+                <th className="border-b border-white/10 p-2"></th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {teams.map((team) => (
+                <tr key={team.id}>
+                  <td className="border-b border-white/5 p-2">
+                    <input
+                      value={team.numeroTeam}
+                      onChange={(e) =>
+                        updateTeam(team.id, "numeroTeam", e.target.value)
+                      }
+                      className="w-full rounded-lg bg-black/40 border border-white/10 px-2 py-1 font-mono"
+                    />
+                  </td>
+
+                  <td className="border-b border-white/5 p-2">
+                    <input
+                      value={team.nomeTeam}
+                      onChange={(e) =>
+                        updateTeam(team.id, "nomeTeam", e.target.value)
+                      }
+                      className="w-full rounded-lg bg-black/40 border border-white/10 px-2 py-1"
+                    />
+                  </td>
+
+                  <td className="border-b border-white/5 p-2">
+                    <input
+                      value={team.pilotaLobby1}
+                      onChange={(e) =>
+                        updateTeam(team.id, "pilotaLobby1", e.target.value)
+                      }
+                      className="w-full rounded-lg bg-black/40 border border-white/10 px-2 py-1"
+                    />
+                  </td>
+
+                  <td className="border-b border-white/5 p-2">
+                    <input
+                      value={team.pilotaLobby2}
+                      onChange={(e) =>
+                        updateTeam(team.id, "pilotaLobby2", e.target.value)
+                      }
+                      className="w-full rounded-lg bg-black/40 border border-white/10 px-2 py-1"
+                    />
+                  </td>
+
+                  <td className="border-b border-white/5 p-2">
+                    <input
+                      value={team.pilotaLobby3}
+                      onChange={(e) =>
+                        updateTeam(team.id, "pilotaLobby3", e.target.value)
+                      }
+                      className="w-full rounded-lg bg-black/40 border border-white/10 px-2 py-1"
+                    />
+                  </td>
+
+                  <td className="border-b border-white/5 p-2">
+                    <button
+                      onClick={() => removeTeam(team.id)}
+                      className="rounded-lg bg-red-500/20 px-3 py-1 text-red-200"
+                    >
+                      Rimuovi
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
+
+      <section className="rounded-2xl border border-white/10 bg-white/5 p-5 mb-6">
+  <h2 className="text-xl font-bold mb-4">
+    Correttivo doppiati
+  </h2>
+
+  <div className="flex items-center gap-3">
+    <span className="text-zinc-300">
+      Secondi da aggiungere al giro del vincitore:
+    </span>
+
+    <input
+      value={lappedCorrectionSeconds}
+      onChange={(e) => setLappedCorrectionSeconds(e.target.value)}
+      className="w-24 rounded-lg bg-black/40 border border-white/10 px-2 py-1 font-mono"
+    />
+
+    <span className="text-zinc-500">s</span>
+  </div>
+</section>
+      
+      <section className="rounded-2xl border border-white/10 bg-white/5 p-5 mb-6">
+        <h2 className="text-xl font-bold mb-4">2. Upload screen gara</h2>
+
+        <label
+  htmlFor="race-upload"
+  className="
+    flex cursor-pointer flex-col items-center justify-center
+    rounded-2xl border-2 border-dashed border-yellow-400/60
+    bg-yellow-400/10
+    px-8 py-10
+    text-center
+    transition
+    hover:bg-yellow-400/20
+    hover:border-yellow-300
+  "
+>
+  <div className="text-3xl font-black text-yellow-300">
+    📸 SCEGLI SCREEN GARA
+  </div>
+
+  <div className="mt-2 text-zinc-300">
+    Clicca qui e seleziona gli screen GT7
+  </div>
+
+  <div className="mt-4 text-sm font-bold">
+    {files.length === 0
+      ? "Nessun file selezionato"
+      : `✅ ${files.length} file selezionat${files.length === 1 ? "o" : "i"}`}
+  </div>
+</label>
+
+<input
+  id="race-upload"
+  type="file"
+  accept="image/*"
+  multiple
+  className="hidden"
+  onChange={(e) => {
+    const selected = Array.from(e.target.files || [])
+    setFiles(selected)
+  }}
+/>
+        <button
+          onClick={handleExtract}
+          disabled={loading}
+          className="mt-4 rounded-xl bg-emerald-500 px-5 py-3 font-black text-black disabled:opacity-50"
+        >
+          {loading ? "OCR in corso..." : "Estrai risultati gara"}
+        </button>
+
+        {error ? (
+          <div className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-red-200">
+            {error}
+          </div>
+        ) : null}
+      </section>
+
+      <section className="rounded-2xl border border-white/10 bg-white/5 p-5 mb-6">
+        <h2 className="text-xl font-bold mb-4">3. Risultati estratti</h2>
+        <button
+  onClick={rematchTeams}
+  className="mb-4 rounded-xl bg-sky-500 px-4 py-2 font-black text-black"
+>
+  Ricalcola Team
+</button>
+
+        {!rows.length ? (
+          <p className="text-zinc-500">Nessun risultato ancora.</p>
+        ) : (
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="text-left text-zinc-400">
+                <th className="border-b border-white/10 p-2">Pos</th>
+                <th className="border-b border-white/10 p-2">Team</th>
+                <th className="border-b border-white/10 p-2">Pilota</th>
+                <th className="border-b border-white/10 p-2">Distacco</th>
+                <th className="border-b border-white/10 p-2">Tempo leader</th>
+<th className="border-b border-white/10 p-2">GV</th>
+<th className="border-b border-white/10 p-2">Doppiato</th>
+<th className="border-b border-white/10 p-2">Tempo manuale</th>
+<th className="border-b border-white/10 p-2">Gap calcolato</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {rowsWithCalculatedGap.map((row) => (
+                <tr key={row.posizione}>
+                  <td className="border-b border-white/5 p-2 font-mono">
+                    {row.posizione}
+                  </td>
+
+                  <td className="border-b border-white/5 p-2">
+                    <input
+                      value={row.teamNumber || ""}
+                      onChange={(e) =>
+                        updateResult(
+                          row.posizione,
+                          "teamNumber",
+                          e.target.value
+                        )
+                      }
+                      className="w-20 rounded-lg bg-black/40 border border-white/10 px-2 py-1 font-mono"
+                    />
+                  </td>
+
+                  <td className="border-b border-white/5 p-2">
+                    <input
+                      value={row.pilota}
+                      onChange={(e) =>
+                        updateResult(row.posizione, "pilota", e.target.value)
+                      }
+                      className="w-full rounded-lg bg-black/40 border border-white/10 px-2 py-1"
+                    />
+                  </td>
+
+                  <td className="border-b border-white/5 p-2">
+                    <input
+                      value={row.distacco}
+                      onChange={(e) =>
+                        updateResult(row.posizione, "distacco", e.target.value)
+                      }
+                      className="w-32 rounded-lg bg-black/40 border border-white/10 px-2 py-1 font-mono"
+                    />
+                  </td>
+
+                  <td className="border-b border-white/5 p-2">
+  <input
+    value={row.tempoTotale}
+    onChange={(e) =>
+      updateResult(row.posizione, "tempoTotale", e.target.value)
+    }
+    className="w-36 rounded-lg bg-black/40 border border-white/10 px-2 py-1 font-mono"
+  />
+</td>
+
+<td className="border-b border-white/5 p-2 font-mono">
+  {row.fastestLap || "-"}
+</td>
+
+<td className="border-b border-white/5 p-2 font-mono">
+  {row.lapsDown ? `${row.lapsDown} giro${row.lapsDown > 1 ? "i" : ""}` : "-"}
+</td>
+
+<td className="border-b border-white/5 p-2">
+  {row.lapsDown ? (
+    <LappedTimeInput
+      value={row.manualTime}
+      onChange={(next) => {
+        setRows((prev) =>
+          prev.map((item) =>
+            item.posizione === row.posizione
+              ? { ...item, manualTime: next }
+              : item
+          )
+        )
+      }}
+    />
+  ) : (
+    <span className="text-zinc-600">-</span>
+  )}
+</td>
+
+<td className="border-b border-white/5 p-2 font-mono text-xs">
+  <div>Manual: {manualTimePartsToFullTime(row.manualTime)}</div>
+  <div>Gap: {row.calculatedGap || "-"}</div>
+</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
+
+      <section className="rounded-2xl border border-white/10 bg-white/5 p-5 mb-6">
+  <h2 className="text-xl font-bold mb-4">
+    4. Griglia rilascio lobby successiva
+  </h2>
+
+  {!releaseGrid.length ? (
+    <p className="text-zinc-500">
+      Nessun Team riconosciuto nei risultati.
+    </p>
+  ) : (
+    <>
+      <table className="w-full border-collapse text-sm">
+        <thead>
+          <tr className="text-left text-zinc-400">
+            <th className="border-b border-white/10 p-2">Ordine rilascio</th>
+            <th className="border-b border-white/10 p-2">Team</th>
+            <th className="border-b border-white/10 p-2">Nome Team</th>
+            <th className="border-b border-white/10 p-2">Pilota rilevato</th>
+            <th className="border-b border-white/10 p-2">Pos. arrivo</th>
+            <th className="border-b border-white/10 p-2">Rilascio</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {releaseGrid.map((team, index) => (
+            <tr key={team.teamNumber}>
+              <td className="border-b border-white/5 p-2 font-mono">
+                {index + 1}
+              </td>
+
+              <td className="border-b border-white/5 p-2 font-mono font-black">
+                {team.teamNumber}
+              </td>
+
+              <td className="border-b border-white/5 p-2">
+                {team.teamName || "-"}
+              </td>
+
+              <td className="border-b border-white/5 p-2">
+                {team.pilot}
+              </td>
+
+              <td className="border-b border-white/5 p-2 font-mono">
+                P{team.position}
+              </td>
+
+              <td className="border-b border-white/5 p-2 font-mono font-black">
+                {team.releaseTime}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <button
+        onClick={() => {
+          localStorage.setItem(
+            "prt-endurance-release-grid",
+            JSON.stringify(releaseGrid)
+          )
+          window.location.href = "/race-control"
+        }}
+        className="mt-6 rounded-xl bg-emerald-500 px-5 py-3 font-black text-black"
+      >
+        🚦 Avvia Race Control
+      </button>
+    </>
+  )}
+</section>
+
+<details className="rounded-2xl border border-white/10 bg-black/40 p-5">
+  <summary className="cursor-pointer font-bold">
+    Debug OCR
+  </summary>
+
+  <pre className="mt-4 whitespace-pre-wrap text-xs text-zinc-400">
+    {debugText || "Nessun debug disponibile."}
+  </pre>
+</details>
+</main>
+)
 }
