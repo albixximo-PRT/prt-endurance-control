@@ -67,6 +67,7 @@ export default function RaceControlPage() {
   const [releasedLog, setReleasedLog] = useState<ReleasedLog[]>([])
   const [spokenTeams, setSpokenTeams] = useState<string[]>([])
   const [liveAudioEvent, setLiveAudioEvent] = useState<LiveAudioEvent | null>(null)
+  
 
   const startRef = useRef<number | null>(null)
 
@@ -111,11 +112,37 @@ export default function RaceControlPage() {
   }, [running])
 
   function playAudio(src: string, volume = 0.35) {
-  setLiveAudioEvent({
+  const audioEvent = {
     id: `${Date.now()}-${Math.random()}`,
     src,
     volume,
-  })
+  }
+
+  setLiveAudioEvent(audioEvent)
+
+  fetch("/api/endurance-live", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      running,
+      timerMs,
+      status: activeTeam ? "GO" : running ? "WAITING" : "READY",
+      activeTeam: activeTeam
+        ? {
+            teamNumber: activeTeam.teamNumber,
+            releaseTime: activeTeam.releaseTime,
+          }
+        : null,
+      nextTeam: nextTeam
+        ? {
+            teamNumber: nextTeam.teamNumber,
+            releaseTime: nextTeam.releaseTime,
+          }
+        : null,
+      audioEvent,
+      updatedAt: Date.now(),
+    }),
+  }).catch(() => {})
 
   return new Promise<void>((resolve) => {
     const audio = new Audio(src)
