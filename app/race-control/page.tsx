@@ -211,7 +211,7 @@ await fetch("/api/endurance-live", {
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
     running: true,
-    timerMs: 0,
+    timerMs: -5000,
     status: "WAITING",
     activeTeam: null,
     nextTeam: nextTeam
