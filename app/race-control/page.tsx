@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import Link from "next/link"
 
 type ReleaseRow = {
   teamNumber: string
@@ -344,6 +345,14 @@ heartbeatSinceLastTeamRef.current = true
         activeTeam ? "bg-emerald-700" : "bg-black"
       }`}
     >
+            <div className="fixed left-4 top-4 z-50">
+        <Link
+          href="/"
+          className="rounded-xl bg-white/10 px-4 py-2 text-sm font-black text-white backdrop-blur hover:bg-white/20"
+        >
+          ← TEMPI
+        </Link>
+      </div>
       <div className="mx-auto flex min-h-[calc(100vh-64px)] max-w-6xl flex-col items-center justify-center">
         <div className="mb-8 text-center">
           <div className="text-8xl font-black font-mono">
