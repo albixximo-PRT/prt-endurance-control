@@ -204,6 +204,10 @@ for (let i = 0; i < 8; i++) {
 
 await new Promise((r) => setTimeout(r, 1000))
 
+await playAudio("/system/tick.wav", AUDIO_VOLUME.heartbeatTick, "ARMED")
+
+await new Promise((r) => setTimeout(r, 3000))
+
 setStarting(false)
 
 await playAudio("/system/init.mp3", AUDIO_VOLUME.initVoice, "ARMED")
