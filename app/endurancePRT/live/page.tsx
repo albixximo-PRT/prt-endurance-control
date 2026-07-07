@@ -142,6 +142,28 @@ audio.play().catch(() => {})
   )
 }
 
+if (!state?.running) {
+  return (
+    <main className="flex h-dvh w-screen items-center justify-center bg-black px-8 text-center text-white">
+      <div>
+        <div className="mb-6 text-2xl font-black uppercase tracking-[0.25em] text-amber-400">
+          Race Control
+        </div>
+
+        <div className="mb-8 text-4xl font-black">
+          Procedura non ancora avviata
+        </div>
+
+        <div className="max-w-sm text-lg leading-relaxed text-zinc-400">
+          Rimani in attesa.
+          <br />
+          La Direzione Gara avvierà a breve la sequenza di partenza.
+        </div>
+      </div>
+    </main>
+  )
+}
+
   return (
     <main
       className={`h-dvh w-screen overflow-hidden text-white transition-colors duration-150 ${
