@@ -178,9 +178,23 @@ playAudio(next.src, next.volume).then(() => {
   async function runInitSequence() {
     initializedRef.current = true
 
-    await playAudio("/system/init.mp3", AUDIO_VOLUME.initVoice)
+await playAudio("/system/pre-start.mp3", AUDIO_VOLUME.initVoice)
 
-    await new Promise((r) => setTimeout(r, 500))
+await new Promise((r) => setTimeout(r, 1000))
+
+for (let i = 0; i < 8; i++) {
+  await playAudio("/system/tick.wav", AUDIO_VOLUME.heartbeatTick)
+
+  if (i < 7) {
+    await new Promise((r) => setTimeout(r, 2000))
+  }
+}
+
+await new Promise((r) => setTimeout(r, 1000))
+
+await playAudio("/system/init.mp3", AUDIO_VOLUME.initVoice)
+
+await new Promise((r) => setTimeout(r, 500))
 
     await playAudio("/system/tick.wav", AUDIO_VOLUME.initTick)
     await new Promise((r) => setTimeout(r, 900))
