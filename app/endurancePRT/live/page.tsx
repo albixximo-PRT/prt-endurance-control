@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react"
 
 type LiveState = {
   running: boolean
-  status: "READY" | "WAITING" | "GO" | "STARTING"
+  status: "READY" | "WAITING" | "GO" | "STARTING" | "ARMED"
   activeTeam: { teamNumber: string; releaseTime: string } | null
   nextTeam: { teamNumber: string; releaseTime: string } | null
   audioEvent: { id: string; src: string; volume: number } | null
@@ -88,6 +88,7 @@ audio.play().catch(() => {})
 
   const nextTeam = state?.nextTeam?.teamNumber || "--"
   const isGo = Boolean(state?.activeTeam)
+const isArmed = state?.status === "ARMED"
 
   if (showSplash) {
   return (
@@ -142,7 +143,11 @@ audio.play().catch(() => {})
   )
 }
 
-if (!state?.running && state?.status !== "STARTING") {
+if (
+  !state?.running &&
+  state?.status !== "STARTING" &&
+  state?.status !== "ARMED"
+) {
   return (
     <main className="flex h-dvh w-screen items-center justify-center bg-black px-8 text-center text-white">
       <div>
@@ -224,7 +229,7 @@ if (state?.status === "STARTING") {
           </div>
 
           <div className="mt-7 text-2xl font-black uppercase tracking-[0.25em] text-white/80">
-            {isGo ? "Partenza" : state?.running ? "Preparati" : "In attesa"}
+            {isGo ? "Partenza" : state?.running || isArmed ? "Preparati" : "In attesa"}
           </div>
         </section>
 

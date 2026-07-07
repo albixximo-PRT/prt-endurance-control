@@ -23,7 +23,7 @@ type LiveAudioEvent = {
   volume: number
 }
 
-type LiveStatus = "READY" | "WAITING" | "GO" | "STARTING"
+type LiveStatus = "READY" | "WAITING" | "GO" | "STARTING" | "ARMED"
 
 const RELEASE_GRID_KEY = "prt-endurance-release-grid"
 const TEAM_CALL_LEAD_MS = 1000
@@ -206,26 +206,7 @@ await new Promise((r) => setTimeout(r, 1000))
 
 setStarting(false)
 
-await fetch("/api/endurance-live", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    running: true,
-    timerMs: -5000,
-    status: "WAITING",
-    activeTeam: null,
-    nextTeam: nextTeam
-      ? {
-          teamNumber: nextTeam.teamNumber,
-          releaseTime: nextTeam.releaseTime,
-        }
-      : null,
-    audioEvent: null,
-    updatedAt: Date.now(),
-  }),
-}).catch(() => {})
-
-await playAudio("/system/init.mp3", AUDIO_VOLUME.initVoice)
+await playAudio("/system/init.mp3", AUDIO_VOLUME.initVoice, "ARMED")
 
 await new Promise((r) => setTimeout(r, 500))
 
