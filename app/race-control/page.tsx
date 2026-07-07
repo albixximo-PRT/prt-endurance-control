@@ -204,7 +204,10 @@ for (let i = 0; i < 8; i++) {
 
 await new Promise((r) => setTimeout(r, 1000))
 
-await playAudio("/system/init.mp3", AUDIO_VOLUME.initVoice, "STARTING")
+setStarting(false)
+setRunning(true)
+
+await playAudio("/system/init.mp3", AUDIO_VOLUME.initVoice)
 
 await new Promise((r) => setTimeout(r, 500))
 
@@ -226,8 +229,6 @@ await new Promise((r) => setTimeout(r, 200))
 
     startRef.current = Date.now()
 setTimerMs(0)
-setStarting(false)
-setRunning(true)
   }
 
   useEffect(() => {
