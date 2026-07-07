@@ -23,6 +23,8 @@ type LiveAudioEvent = {
   volume: number
 }
 
+type LiveStatus = "READY" | "WAITING" | "GO" | "STARTING"
+
 const RELEASE_GRID_KEY = "prt-endurance-release-grid"
 const TEAM_CALL_LEAD_MS = 1000
 const AUDIO_VOLUME = {
@@ -112,7 +114,7 @@ export default function RaceControlPage() {
     return () => window.clearInterval(interval)
   }, [running])
 
-  function playAudio(src: string, volume = 0.35) {
+  function playAudio(src: string, volume = 0.35, statusOverride?: LiveStatus) {
   const audioEvent = {
     id: `${Date.now()}-${Math.random()}`,
     src,
@@ -127,7 +129,7 @@ export default function RaceControlPage() {
     body: JSON.stringify({
       running,
       timerMs,
-      status: activeTeam ? "GO" : running ? "WAITING" : "READY",
+      status: statusOverride ?? (activeTeam ? "GO" : running ? "WAITING" : "READY"),
       activeTeam: activeTeam
         ? {
             teamNumber: activeTeam.teamNumber,
@@ -178,12 +180,12 @@ playAudio(next.src, next.volume).then(() => {
   async function runInitSequence() {
     initializedRef.current = true
 
-await playAudio("/system/pre-start.mp3", AUDIO_VOLUME.initVoice)
+await playAudio("/system/pre-start.mp3", AUDIO_VOLUME.initVoice, "STARTING")
 
 await new Promise((r) => setTimeout(r, 1000))
 
 for (let i = 0; i < 8; i++) {
-  await playAudio("/system/tick.wav", AUDIO_VOLUME.heartbeatTick)
+  await playAudio("/system/tick.wav", AUDIO_VOLUME.heartbeatTick, "STARTING")
 
   if (i < 7) {
     await new Promise((r) => setTimeout(r, 2000))
@@ -192,7 +194,7 @@ for (let i = 0; i < 8; i++) {
 
 await new Promise((r) => setTimeout(r, 1000))
 
-await playAudio("/system/init.mp3", AUDIO_VOLUME.initVoice)
+await playAudio("/system/init.mp3", AUDIO_VOLUME.initVoice, "STARTING")
 
 await new Promise((r) => setTimeout(r, 500))
 

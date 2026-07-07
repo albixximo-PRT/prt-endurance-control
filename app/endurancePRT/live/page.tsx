@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react"
 
 type LiveState = {
   running: boolean
-  status: "READY" | "WAITING" | "GO"
+  status: "READY" | "WAITING" | "GO" | "STARTING"
   activeTeam: { teamNumber: string; releaseTime: string } | null
   nextTeam: { teamNumber: string; releaseTime: string } | null
   audioEvent: { id: string; src: string; volume: number } | null
@@ -142,7 +142,7 @@ audio.play().catch(() => {})
   )
 }
 
-if (!state?.running) {
+if (!state?.running && state?.status !== "STARTING") {
   return (
     <main className="flex h-dvh w-screen items-center justify-center bg-black px-8 text-center text-white">
       <div>
@@ -158,6 +158,28 @@ if (!state?.running) {
           Rimani in attesa.
           <br />
           La Direzione Gara avvierà a breve la sequenza di partenza.
+        </div>
+      </div>
+    </main>
+  )
+}
+
+if (state?.status === "STARTING") {
+  return (
+    <main className="flex h-dvh w-screen items-center justify-center bg-black px-8 text-center text-white">
+      <div>
+        <div className="mb-6 text-2xl font-black uppercase tracking-[0.25em] text-amber-400">
+          Race Control
+        </div>
+
+        <div className="mb-8 text-4xl font-black">
+          Procedura di partenza in avvio
+        </div>
+
+        <div className="max-w-sm text-lg leading-relaxed text-zinc-400">
+          Rimanete in attesa nella corsia box.
+          <br />
+          Il sistema sta preparando la sequenza ufficiale.
         </div>
       </div>
     </main>
