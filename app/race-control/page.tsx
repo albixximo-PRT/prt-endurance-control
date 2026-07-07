@@ -340,11 +340,7 @@ heartbeatSinceLastTeamRef.current = true
   }, [running, releasedTeams, releaseGrid])
 
   return (
-    <main
-      className={`min-h-screen text-white p-8 transition-colors duration-200 ${
-        activeTeam ? "bg-emerald-700" : "bg-black"
-      }`}
-    >
+    <main className="h-screen overflow-hidden bg-black p-4 text-white">
             <div className="fixed left-4 top-4 z-50">
         <Link
           href="/"
@@ -353,42 +349,43 @@ heartbeatSinceLastTeamRef.current = true
           ← TEMPI
         </Link>
       </div>
-      <div className="mx-auto flex min-h-[calc(100vh-64px)] max-w-6xl flex-col items-center justify-center">
-        <div className="mb-8 text-center">
-          <div className="text-8xl font-black font-mono">
-            {formatTimer(timerMs)}
-          </div>
+      <div className="mx-auto flex h-full max-w-7xl flex-col">
+        <div className="grid min-h-0 grid-cols-[0.9fr_1.1fr] gap-4"></div>
+        <div className="mb-4 text-center">
+  <div className="text-7xl font-black font-mono">
+    {formatTimer(timerMs)}
+  </div>
 
-          <div className="mt-3 text-lg font-bold text-zinc-300">
-            PRT ENDURANCE CONTROL
-          </div>
-        </div>
+  <div className="mt-1 text-base font-bold tracking-widest text-zinc-300">
+    PRT ENDURANCE CONTROL
+  </div>
+</div>
 
-        <div className="mb-8 text-center">
-          <div className="text-3xl font-black text-zinc-300">
-            TEAM IN PARTENZA
-          </div>
+        <div className="mb-4 text-center">
+  <div className="text-2xl font-black text-zinc-300 tracking-wider">
+    TEAM IN PARTENZA
+  </div>
 
-          <div className="text-[190px] leading-none font-black">
-            {activeTeam?.teamNumber || "--"}
-          </div>
+  <div className="text-[150px] leading-none font-black">
+    {activeTeam?.teamNumber || "--"}
+  </div>
 
-          <div className="text-7xl font-black text-white">
-            {activeTeam ? "GO!" : running ? "IN ATTESA" : "READY"}
-          </div>
-        </div>
+  <div className="text-5xl font-black text-white">
+    {activeTeam ? "GO!" : running ? "IN ATTESA" : "READY"}
+  </div>
+</div>
 
         {nextTeam ? (
-          <div className="mb-8 rounded-2xl border border-white/10 bg-white/5 px-8 py-5 text-center">
+  <div className="mb-4 rounded-2xl border border-white/10 bg-white/5 px-6 py-3 text-center">
             <div className="mb-2 text-sm font-black uppercase text-zinc-400">
               Prossimo Team
             </div>
 
-            <div className="text-4xl font-black">
+            <div className="text-3xl font-black">
               Team {nextTeam.teamNumber}
             </div>
 
-            <div className="font-mono text-2xl text-zinc-300">
+            <div className="font-mono text-xl text-zinc-300">
               {nextTeam.releaseTime}
             </div>
           </div>
@@ -398,7 +395,7 @@ heartbeatSinceLastTeamRef.current = true
           </div>
         )}
 
-        <div className="mb-8 flex gap-4">
+        <div className="mb-4 flex justify-center gap-3">
           <button
             onClick={() => {
               if (running) return
@@ -411,14 +408,14 @@ heartbeatSinceLastTeamRef.current = true
               startRef.current = Date.now() - timerMs
               setRunning(true)
             }}
-            className="rounded-2xl bg-emerald-500 px-8 py-4 text-2xl font-black text-black"
+            className="rounded-xl bg-emerald-500 px-6 py-3 text-xl font-black text-black"
           >
             START
           </button>
 
           <button
             onClick={() => setRunning(false)}
-            className="rounded-2xl bg-yellow-500 px-8 py-4 text-2xl font-black text-black"
+            className="rounded-xl bg-yellow-500 px-6 py-3 text-xl font-black text-black"
           >
             PAUSA
           </button>
@@ -439,14 +436,14 @@ heartbeatSinceLastTeamRef.current = true
               finishQueuedRef.current = false
               heartbeatSinceLastTeamRef.current = false
             }}
-            className="rounded-2xl bg-red-500 px-8 py-4 text-2xl font-black text-black"
+            className="rounded-xl bg-red-500 px-6 py-3 text-xl font-black text-black"
           >
             RESET
           </button>
         </div>
 
-        <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+        <div className="grid min-h-0 w-full flex-1 grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="min-h-0 rounded-2xl border border-white/10 bg-white/5 p-4">
             <div className="mb-3 text-sm font-black uppercase text-zinc-400">
               Prossimi rilasci
             </div>
@@ -454,7 +451,7 @@ heartbeatSinceLastTeamRef.current = true
             {!nextTeams.length ? (
               <div className="text-zinc-500">Nessun Team in attesa.</div>
             ) : (
-              <div className="space-y-2">
+              <div className="max-h-full space-y-2 overflow-y-auto pr-1">
                 {nextTeams.slice(0, 6).map((team) => (
                   <div
                     key={team.teamNumber}
@@ -473,7 +470,7 @@ heartbeatSinceLastTeamRef.current = true
             )}
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+          <div className="min-h-0 rounded-2xl border border-white/10 bg-white/5 p-4">
             <div className="mb-3 text-sm font-black uppercase text-zinc-400">
               Registro audio
             </div>
@@ -481,7 +478,7 @@ heartbeatSinceLastTeamRef.current = true
             {!releasedLog.length ? (
               <div className="text-zinc-500">Nessun Team rilasciato.</div>
             ) : (
-              <div className="space-y-2">
+              <div className="max-h-full space-y-2 overflow-y-auto pr-1">
                 {releasedLog.slice(0, 6).map((log, index) => (
                   <div
                     key={`${log.teamNumber}-${index}`}
