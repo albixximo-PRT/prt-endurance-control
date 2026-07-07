@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { useEffect, useRef, useState } from "react"
 
 type LiveState = {
@@ -14,6 +15,7 @@ type LiveState = {
 export default function EnduranceLivePage() {
   const [state, setState] = useState<LiveState | null>(null)
   const [audioEnabled, setAudioEnabled] = useState(false)
+  const [showSplash, setShowSplash] = useState(true)
   const lastAudioIdRef = useRef<string | null>(null)
   const wakeLockRef = useRef<any>(null)
 
@@ -25,7 +27,15 @@ async function requestWakeLock() {
   } catch {}
 }
 
-  useEffect(() => {
+useEffect(() => {
+  const timer = setTimeout(() => {
+    setShowSplash(false)
+  }, 5000)
+
+  return () => clearTimeout(timer)
+}, [])  
+
+useEffect(() => {
     const interval = window.setInterval(async () => {
       try {
         const res = await fetch("/api/endurance-live", { cache: "no-store" })
@@ -79,40 +89,58 @@ audio.play().catch(() => {})
   const nextTeam = state?.nextTeam?.teamNumber || "--"
   const isGo = Boolean(state?.activeTeam)
 
+  if (showSplash) {
+  return (
+    <main className="relative h-dvh w-screen overflow-hidden bg-black">
+      <Image
+        src="/endurance/splash.png"
+        alt="PRT Endurance Control"
+        fill
+        priority
+        className="object-cover"
+      />
+
+      <div className="absolute inset-0 bg-black/10" />
+    </main>
+  )
+}
+  
   if (!audioEnabled) {
-    return (
-      <main className="flex h-dvh w-screen items-center justify-center overflow-hidden bg-black px-6 text-white">
-        <button
-          onClick={async () => {
-  lastAudioIdRef.current = state?.audioEvent?.id ?? null
-  setAudioEnabled(true)
-  await requestWakeLock()
-}}
-          className="flex h-full w-full flex-col items-center justify-center text-center"
-        >
-          <div className="mb-8 text-xs font-black uppercase tracking-[0.45em] text-emerald-400">
-            Poison Racing Team
-          </div>
+  return (
+    <main className="flex h-dvh w-screen items-center justify-center overflow-hidden bg-black px-6 text-white">
+      <button
+        onClick={async () => {
+          lastAudioIdRef.current = state?.audioEvent?.id ?? null
+          setAudioEnabled(true)
+          await requestWakeLock()
+        }}
+        className="flex h-full w-full flex-col items-center justify-center text-center active:scale-[0.98]"
+      >
+        <Image
+          src="/endurance/logo.png"
+          alt="Poison Racing Team"
+          width={210}
+          height={210}
+          priority
+          className="mb-7 object-contain"
+        />
 
-          <div className="mb-5 text-5xl font-black leading-none">
-            PRT
-          </div>
+        <div className="mb-10 text-sm font-black uppercase tracking-[0.38em] text-zinc-300">
+          Endurance Division
+        </div>
 
-          <div className="mb-12 text-xl font-black uppercase tracking-[0.25em] text-zinc-400">
-            Endurance Control
-          </div>
+        <div className="rounded-[2rem] border border-yellow-200/80 bg-gradient-to-b from-yellow-200 via-amber-400 to-yellow-700 px-9 py-7 text-3xl font-black leading-tight text-black shadow-[0_0_45px_rgba(251,191,36,0.65)]">
+          <span className="block">ENTRA IN</span>
+<span className="block">RACE CONTROL</span>
+        </div>
 
-          <div className="rounded-[2rem] bg-emerald-500 px-10 py-7 text-3xl font-black text-black shadow-2xl">
-            ATTIVA AUDIO
-          </div>
-
-          <div className="mt-8 max-w-xs text-sm font-bold text-zinc-500">
-            Tocca una volta per abilitare la chiamata audio dei Team.
-          </div>
-        </button>
-      </main>
-    )
-  }
+        <div className="mt-8 max-w-xs text-sm font-bold leading-relaxed text-zinc-500">
+          Tocca per accedere alla procedura di partenza e attivare l’audio dei Team.
+        </div>
+      </button>
+    </main>
+  )
+}
 
   return (
     <main
