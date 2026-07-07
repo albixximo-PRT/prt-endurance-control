@@ -15,6 +15,15 @@ export default function EnduranceLivePage() {
   const [state, setState] = useState<LiveState | null>(null)
   const [audioEnabled, setAudioEnabled] = useState(false)
   const lastAudioIdRef = useRef<string | null>(null)
+  const wakeLockRef = useRef<any>(null)
+
+async function requestWakeLock() {
+  try {
+    if ("wakeLock" in navigator) {
+      wakeLockRef.current = await (navigator as any).wakeLock.request("screen")
+    }
+  } catch {}
+}
 
   useEffect(() => {
     const interval = window.setInterval(async () => {
@@ -27,6 +36,28 @@ export default function EnduranceLivePage() {
 
     return () => window.clearInterval(interval)
   }, [])
+
+  useEffect(() => {
+  if (!audioEnabled) return
+
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === "visible") {
+      requestWakeLock()
+    }
+  }
+
+  document.addEventListener("visibilitychange", handleVisibilityChange)
+
+  return () => {
+    document.removeEventListener(
+      "visibilitychange",
+      handleVisibilityChange
+    )
+
+    wakeLockRef.current?.release?.()
+    wakeLockRef.current = null
+  }
+}, [audioEnabled])
 
   useEffect(() => {
     if (!audioEnabled) return
@@ -52,7 +83,11 @@ audio.play().catch(() => {})
     return (
       <main className="flex h-dvh w-screen items-center justify-center overflow-hidden bg-black px-6 text-white">
         <button
-          onClick={() => setAudioEnabled(true)}
+          onClick={async () => {
+  lastAudioIdRef.current = state?.audioEvent?.id ?? null
+  setAudioEnabled(true)
+  await requestWakeLock()
+}}
           className="flex h-full w-full flex-col items-center justify-center text-center"
         >
           <div className="mb-8 text-xs font-black uppercase tracking-[0.45em] text-emerald-400">
