@@ -142,7 +142,7 @@ audio.play().catch(() => {})
   )
 }
 
-if (!state?.running && !state?.audioEvent) {
+if (!state?.running) {
   return (
     <main className="flex h-dvh w-screen items-center justify-center bg-black px-8 text-center text-white">
       <div>
