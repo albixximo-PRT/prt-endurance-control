@@ -65,7 +65,8 @@ export default function RaceControlPage() {
   const [releaseGrid, setReleaseGrid] = useState<ReleaseRow[]>([])
   const [timerMs, setTimerMs] = useState(0)
   const [running, setRunning] = useState(false)
-  const [activeTeam, setActiveTeam] = useState<ReleaseRow | null>(null)
+const [starting, setStarting] = useState(false)
+const [activeTeam, setActiveTeam] = useState<ReleaseRow | null>(null)
   const [releasedTeams, setReleasedTeams] = useState<string[]>([])
   const [releasedLog, setReleasedLog] = useState<ReleasedLog[]>([])
   const [spokenTeams, setSpokenTeams] = useState<string[]>([])
@@ -129,7 +130,15 @@ export default function RaceControlPage() {
     body: JSON.stringify({
       running,
       timerMs,
-      status: statusOverride ?? (activeTeam ? "GO" : running ? "WAITING" : "READY"),
+      status: statusOverride ?? (
+  starting
+    ? "STARTING"
+    : activeTeam
+      ? "GO"
+      : running
+        ? "WAITING"
+        : "READY"
+),
       activeTeam: activeTeam
         ? {
             teamNumber: activeTeam.teamNumber,
@@ -179,6 +188,7 @@ playAudio(next.src, next.volume).then(() => {
 
   async function runInitSequence() {
     initializedRef.current = true
+    setStarting(true)
 
 await playAudio("/system/pre-start.mp3", AUDIO_VOLUME.initVoice, "STARTING")
 
@@ -215,8 +225,9 @@ await new Promise((r) => setTimeout(r, 500))
 await new Promise((r) => setTimeout(r, 200))
 
     startRef.current = Date.now()
-    setTimerMs(0)
-    setRunning(true)
+setTimerMs(0)
+setStarting(false)
+setRunning(true)
   }
 
   useEffect(() => {
@@ -288,7 +299,13 @@ enqueueAudio(
   const payload = {
     running,
     timerMs,
-    status: activeTeam ? "GO" : running ? "WAITING" : "READY",
+    status: starting
+  ? "STARTING"
+  : activeTeam
+    ? "GO"
+    : running
+      ? "WAITING"
+      : "READY",
     activeTeam: activeTeam
       ? {
           teamNumber: activeTeam.teamNumber,
@@ -312,7 +329,7 @@ enqueueAudio(
     },
     body: JSON.stringify(payload),
   }).catch(() => {})
-}, [running, activeTeam, nextTeam, liveAudioEvent])
+}, [running, starting, activeTeam, nextTeam, liveAudioEvent])
 
   useEffect(() => {
     if (!running) return
