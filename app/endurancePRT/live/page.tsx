@@ -7,7 +7,7 @@ type LiveState = {
   status: "READY" | "WAITING" | "GO"
   activeTeam: { teamNumber: string; releaseTime: string } | null
   nextTeam: { teamNumber: string; releaseTime: string } | null
-  audioEvent: { id: string; teamNumber: string; src: string } | null
+  audioEvent: { id: string; src: string; volume: number } | null
   updatedAt: number
 }
 
@@ -36,8 +36,8 @@ export default function EnduranceLivePage() {
     lastAudioIdRef.current = state.audioEvent.id
 
     const audio = new Audio(state.audioEvent.src)
-    audio.volume = 1
-    audio.play().catch(() => {})
+audio.volume = state.audioEvent.volume ?? 1
+audio.play().catch(() => {})
   }, [audioEnabled, state?.audioEvent])
 
   const shownTeam =
