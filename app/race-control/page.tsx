@@ -27,6 +27,7 @@ type LiveStatus = "READY" | "WAITING" | "GO" | "STARTING" | "ARMED" | "PREPARING
 
 const RELEASE_GRID_KEY = "prt-endurance-release-grid"
 const TEAM_CALL_LEAD_MS = 1000
+const TECHNICAL_PREROLL_MS = 5000
 const AUDIO_VOLUME = {
   initVoice: 1,
   initTick: 1,
@@ -230,8 +231,8 @@ await new Promise((r) => setTimeout(r, 200))
 
 setPreparing(false)
 
-startRef.current = Date.now()
-setTimerMs(0)
+startRef.current = Date.now() + TECHNICAL_PREROLL_MS
+setTimerMs(-TECHNICAL_PREROLL_MS)
 setRunning(true)
 }
 
@@ -276,10 +277,7 @@ setRunning(true)
     if (alreadySpoken) continue
 
     const releaseMs = parseReleaseTimeToMs(team.releaseTime)
-    const audioStartMs =
-  releaseMs <= TEAM_CALL_LEAD_MS
-    ? 0
-    : releaseMs - TEAM_CALL_LEAD_MS
+    const audioStartMs = releaseMs - TEAM_CALL_LEAD_MS
 
 if (timerMs >= audioStartMs) {
       setSpokenTeams((prev) => [...prev, team.teamNumber])
