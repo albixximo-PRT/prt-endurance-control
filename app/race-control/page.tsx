@@ -23,7 +23,7 @@ type LiveAudioEvent = {
   volume: number
 }
 
-type LiveStatus = "READY" | "WAITING" | "GO" | "STARTING" | "ARMED"
+type LiveStatus = "READY" | "WAITING" | "GO" | "STARTING" | "ARMED" | "PREPARING"
 
 const RELEASE_GRID_KEY = "prt-endurance-release-grid"
 const TEAM_CALL_LEAD_MS = 1000
@@ -66,6 +66,7 @@ export default function RaceControlPage() {
   const [timerMs, setTimerMs] = useState(0)
   const [running, setRunning] = useState(false)
 const [starting, setStarting] = useState(false)
+const [preparing, setPreparing] = useState(false)
 const [activeTeam, setActiveTeam] = useState<ReleaseRow | null>(null)
   const [releasedTeams, setReleasedTeams] = useState<string[]>([])
   const [releasedLog, setReleasedLog] = useState<ReleasedLog[]>([])
@@ -131,13 +132,15 @@ const [activeTeam, setActiveTeam] = useState<ReleaseRow | null>(null)
       running,
       timerMs,
       status: statusOverride ?? (
-  starting
-    ? "STARTING"
-    : activeTeam
-      ? "GO"
-      : running
-        ? "WAITING"
-        : "READY"
+  preparing
+    ? "PREPARING"
+    : starting
+      ? "STARTING"
+      : activeTeam
+        ? "GO"
+        : running
+          ? "WAITING"
+          : "READY"
 ),
       activeTeam: activeTeam
         ? {
@@ -204,31 +207,28 @@ for (let i = 0; i < 8; i++) {
 
 await new Promise((r) => setTimeout(r, 1000))
 
-await playAudio("/system/tick.wav", AUDIO_VOLUME.heartbeatTick, "ARMED")
-
-await new Promise((r) => setTimeout(r, 3000))
+await playAudio("/system/init.mp3", AUDIO_VOLUME.initVoice, "STARTING")
 
 setStarting(false)
+setPreparing(true)
 
-await playAudio("/system/init.mp3", AUDIO_VOLUME.initVoice, "ARMED")
+await playAudio("/system/tick.wav", AUDIO_VOLUME.initTick, "PREPARING")
+await new Promise((r) => setTimeout(r, 900))
 
-await new Promise((r) => setTimeout(r, 500))
+await playAudio("/system/tick.wav", AUDIO_VOLUME.initTick, "PREPARING")
+await new Promise((r) => setTimeout(r, 900))
 
-    await playAudio("/system/tick.wav", AUDIO_VOLUME.initTick)
-    await new Promise((r) => setTimeout(r, 900))
+await playAudio("/system/tick.wav", AUDIO_VOLUME.initTick, "PREPARING")
+await new Promise((r) => setTimeout(r, 900))
 
-    await playAudio("/system/tick.wav", AUDIO_VOLUME.initTick)
-    await new Promise((r) => setTimeout(r, 900))
+await playAudio("/system/tick.wav", AUDIO_VOLUME.initTick, "PREPARING")
+await new Promise((r) => setTimeout(r, 700))
 
-    await playAudio("/system/tick.wav", AUDIO_VOLUME.initTick)
-    await new Promise((r) => setTimeout(r, 900))
-
-    await playAudio("/system/tick.wav", AUDIO_VOLUME.initTick)
-    await new Promise((r) => setTimeout(r, 700))
-
-    await playAudio("/system/tick.wav", AUDIO_VOLUME.initTick)
+await playAudio("/system/tick.wav", AUDIO_VOLUME.initTick, "PREPARING")
 
 await new Promise((r) => setTimeout(r, 200))
+
+setPreparing(false)
 
 startRef.current = Date.now()
 setTimerMs(0)
@@ -304,13 +304,15 @@ enqueueAudio(
   const payload = {
     running,
     timerMs,
-    status: starting
-  ? "STARTING"
-  : activeTeam
-    ? "GO"
-    : running
-      ? "WAITING"
-      : "READY",
+    status: preparing
+  ? "PREPARING"
+  : starting
+    ? "STARTING"
+    : activeTeam
+      ? "GO"
+      : running
+        ? "WAITING"
+        : "READY",
     activeTeam: activeTeam
       ? {
           teamNumber: activeTeam.teamNumber,
@@ -334,8 +336,7 @@ enqueueAudio(
     },
     body: JSON.stringify(payload),
   }).catch(() => {})
-}, [running, starting, activeTeam, nextTeam, liveAudioEvent])
-
+}, [running, starting, preparing, activeTeam, nextTeam, liveAudioEvent])
   useEffect(() => {
     if (!running) return
     if (!nextTeam) return
