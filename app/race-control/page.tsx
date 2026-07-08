@@ -276,9 +276,12 @@ setRunning(true)
     if (alreadySpoken) continue
 
     const releaseMs = parseReleaseTimeToMs(team.releaseTime)
-    const audioStartMs = releaseMs - TEAM_CALL_LEAD_MS
+    const audioStartMs =
+  releaseMs <= TEAM_CALL_LEAD_MS
+    ? 0
+    : releaseMs - TEAM_CALL_LEAD_MS
 
-    if (timerMs >= audioStartMs) {
+if (timerMs >= audioStartMs) {
       setSpokenTeams((prev) => [...prev, team.teamNumber])
 
       
