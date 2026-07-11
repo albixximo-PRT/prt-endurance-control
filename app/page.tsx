@@ -14,6 +14,13 @@ type ExtractedRow = {
   lapsDown?: number
   manualTime?: ManualTimeParts
   calculatedGap?: string
+
+  pvcpEnabled?: boolean
+  pvcpCrashLap?: string
+  pvcpRacePosition?: string
+  pvcpFrontTeam?: string
+  pvcpBackTeam?: string
+  pvcpCalculatedGap?: string
 }
 
 type TeamRow = {
@@ -35,6 +42,7 @@ type ReleaseRow = {
 }
 
 const TEAMS_STORAGE_KEY = "prt-endurance-control-teams"
+const TOTAL_RACE_LAPS = 36
 
 function normalizeName(value: string) {
   return String(value || "")
@@ -199,6 +207,74 @@ function calculateLappedGap(
     winnerTotalMs
 
   if (gapMs <= 0) return ""
+
+  return formatFullGap(gapMs)
+}
+
+function calculatePvcpGap(
+  crashLap: number,
+  racePosition: number,
+  frontTeamTotalTime: string,
+  backTeamTotalTime: string,
+  winnerTotalTime: string,
+  totalTeams: number
+) {
+  if (
+    crashLap < 1 ||
+    crashLap > TOTAL_RACE_LAPS ||
+    racePosition < 1
+  ) {
+    return ""
+  }
+
+  const winnerTotalMs = parseFullTimeToMs(winnerTotalTime)
+  const frontTotalMs = parseFullTimeToMs(frontTeamTotalTime)
+  const backTotalMs = parseFullTimeToMs(backTeamTotalTime)
+
+  if (!winnerTotalMs) return ""
+
+  const missingLaps = TOTAL_RACE_LAPS - crashLap
+
+  let recoveryIndexSeconds = 0
+  let baseCrashOffsetSeconds = 0
+
+  if (crashLap <= 9) {
+    recoveryIndexSeconds = 4
+    baseCrashOffsetSeconds = 5
+  } else if (crashLap <= 18) {
+    recoveryIndexSeconds = 3
+    baseCrashOffsetSeconds = 10
+  } else if (crashLap <= 27) {
+    recoveryIndexSeconds = 2
+    baseCrashOffsetSeconds = 15
+  } else {
+    recoveryIndexSeconds = 1
+    baseCrashOffsetSeconds = 20
+  }
+
+  let referenceTimeMs = 0
+
+  if (racePosition === 1) {
+    if (!backTotalMs) return ""
+    referenceTimeMs = backTotalMs - 5_000
+  } else if (racePosition === totalTeams) {
+    if (!frontTotalMs) return ""
+    referenceTimeMs = frontTotalMs + 5_000
+  } else {
+    if (!frontTotalMs || !backTotalMs) return ""
+    referenceTimeMs = Math.round(
+      (frontTotalMs + backTotalMs) / 2
+    )
+  }
+
+  const pvcpTotalMs =
+    referenceTimeMs +
+    missingLaps * recoveryIndexSeconds * 1_000 +
+    baseCrashOffsetSeconds * 1_000
+
+  const gapMs = pvcpTotalMs - winnerTotalMs
+
+  if (gapMs <= 0) return "00:00.000"
 
   return formatFullGap(gapMs)
 }
@@ -375,9 +451,29 @@ const rowsWithCalculatedGap = useMemo<ExtractedRow[]>(() => {
         )
       : ""
 
+    const frontRow = rows.find(
+      (item) => item.teamNumber === row.pvcpFrontTeam
+    )
+
+    const backRow = rows.find(
+      (item) => item.teamNumber === row.pvcpBackTeam
+    )
+
+    const pvcpCalculatedGap = row.pvcpEnabled
+      ? calculatePvcpGap(
+          Number(row.pvcpCrashLap),
+          Number(row.pvcpRacePosition),
+          frontRow?.tempoTotale || "",
+          backRow?.tempoTotale || "",
+          winner.tempoTotale || "",
+          rows.length
+        )
+      : ""
+
     return {
       ...row,
       calculatedGap,
+      pvcpCalculatedGap,
     }
   })
 }, [rows, lappedCorrectionSeconds])
@@ -401,7 +497,8 @@ const releaseGrid = useMemo<ReleaseRow[]>(() => {
         releaseTime:
   row.posizione === 1
     ? "00:00.000"
-    : row.calculatedGap ||
+    : row.pvcpCalculatedGap ||
+      row.calculatedGap ||
       formatTimer(parseReleaseTimeToMs(row.distacco)),
       })
     }
@@ -660,8 +757,8 @@ setDebugText(
                 <th className="border-b border-white/10 p-2">Distacco</th>
                 <th className="border-b border-white/10 p-2">Tempo leader</th>
 <th className="border-b border-white/10 p-2">GV</th>
-<th className="border-b border-white/10 p-2">Doppiato</th>
-<th className="border-b border-white/10 p-2">Tempo manuale</th>
+<th className="border-b border-white/10 p-2">Casi speciali DG</th>
+<th className="border-b border-white/10 p-2">Dati richiesti</th>
 <th className="border-b border-white/10 p-2">Gap calcolato</th>
               </tr>
             </thead>
@@ -721,8 +818,44 @@ setDebugText(
   {row.fastestLap || "-"}
 </td>
 
-<td className="border-b border-white/5 p-2 font-mono">
-  {row.lapsDown ? `${row.lapsDown} giro${row.lapsDown > 1 ? "i" : ""}` : "-"}
+<td className="border-b border-white/5 p-2">
+  <div className="flex min-w-36 flex-col gap-2">
+    {row.lapsDown ? (
+      <div className="font-mono font-bold text-yellow-300">
+        {row.lapsDown} giro{row.lapsDown > 1 ? "i" : ""}
+      </div>
+    ) : null}
+
+    <label className="flex items-center gap-2 text-xs font-bold">
+      <input
+        type="checkbox"
+        checked={Boolean(row.pvcpEnabled)}
+        disabled={Boolean(row.lapsDown)}
+        onChange={(e) =>
+          setRows((prev) =>
+            prev.map((item) =>
+              item.posizione === row.posizione
+                ? {
+                    ...item,
+                    pvcpEnabled: e.target.checked,
+                    pvcpCrashLap: "",
+                    pvcpRacePosition: "",
+                    pvcpFrontTeam: "",
+                    pvcpBackTeam: "",
+                  }
+                : item
+            )
+          )
+        }
+      />
+
+      NON FINITO — PVCP
+    </label>
+
+    {!row.lapsDown && !row.pvcpEnabled ? (
+      <span className="text-xs text-zinc-600">Nessun intervento</span>
+    ) : null}
+  </div>
 </td>
 
 <td className="border-b border-white/5 p-2">
@@ -739,14 +872,91 @@ setDebugText(
         )
       }}
     />
+  ) : row.pvcpEnabled ? (
+    <div className="grid min-w-[300px] grid-cols-2 gap-2">
+      <input
+        type="number"
+        min="1"
+        max={TOTAL_RACE_LAPS}
+        placeholder="Giro crash"
+        value={row.pvcpCrashLap || ""}
+        onChange={(e) =>
+          updateResult(row.posizione, "pvcpCrashLap", e.target.value)
+        }
+        className="rounded-lg border border-white/10 bg-black/40 px-2 py-1 font-mono"
+      />
+
+      <input
+        type="number"
+        min="1"
+        placeholder="Posizione crash"
+        value={row.pvcpRacePosition || ""}
+        onChange={(e) =>
+          updateResult(row.posizione, "pvcpRacePosition", e.target.value)
+        }
+        className="rounded-lg border border-white/10 bg-black/40 px-2 py-1 font-mono"
+      />
+
+      <select
+        value={row.pvcpFrontTeam || ""}
+        onChange={(e) =>
+          updateResult(row.posizione, "pvcpFrontTeam", e.target.value)
+        }
+        className="rounded-lg border border-white/10 bg-zinc-900 px-2 py-1"
+      >
+        <option value="">Team davanti</option>
+
+        {rows
+          .filter((item) => item.posizione !== row.posizione)
+          .map((item) => (
+            <option
+              key={`front-${item.posizione}`}
+              value={item.teamNumber || ""}
+            >
+              Team {item.teamNumber || "?"} — P{item.posizione}
+            </option>
+          ))}
+      </select>
+
+      <select
+        value={row.pvcpBackTeam || ""}
+        onChange={(e) =>
+          updateResult(row.posizione, "pvcpBackTeam", e.target.value)
+        }
+        className="rounded-lg border border-white/10 bg-zinc-900 px-2 py-1"
+      >
+        <option value="">Team dietro</option>
+
+        {rows
+          .filter((item) => item.posizione !== row.posizione)
+          .map((item) => (
+            <option
+              key={`back-${item.posizione}`}
+              value={item.teamNumber || ""}
+            >
+              Team {item.teamNumber || "?"} — P{item.posizione}
+            </option>
+          ))}
+      </select>
+    </div>
   ) : (
     <span className="text-zinc-600">-</span>
   )}
 </td>
 
 <td className="border-b border-white/5 p-2 font-mono text-xs">
-  <div>Manual: {manualTimePartsToFullTime(row.manualTime)}</div>
-  <div>Gap: {row.calculatedGap || "-"}</div>
+  {row.lapsDown ? (
+    <>
+      <div>Manual: {manualTimePartsToFullTime(row.manualTime)}</div>
+      <div>Gap doppiato: {row.calculatedGap || "-"}</div>
+    </>
+  ) : row.pvcpEnabled ? (
+    <div className="font-bold text-red-300">
+      Gap PVCP: {row.pvcpCalculatedGap || "-"}
+    </div>
+  ) : (
+    <span className="text-zinc-600">-</span>
+  )}
 </td>
                 </tr>
               ))}
