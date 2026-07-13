@@ -397,6 +397,9 @@ export default function Home() {
   const [rows, setRows] = useState<ExtractedRow[]>([])
   const [teams, setTeams] = useState<TeamRow[]>([])
   const [selectedLobby, setSelectedLobby] = useState<1 | 2 | 3>(1)
+  const [missingRowsData, setMissingRowsData] = useState<
+  Record<string, Partial<ExtractedRow>>
+>({})
   const [debugText, setDebugText] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
@@ -514,16 +517,40 @@ function findPilotMatch(pilotName: string) {
   }
 
   function updateResult(
-    posizione: number,
-    field: keyof ExtractedRow,
-    value: string
-  ) {
+  posizione: number,
+  field: keyof ExtractedRow,
+  value: string
+) {
+  const existingRow = rows.find(
+    (row) => row.posizione === posizione
+  )
+
+  if (existingRow) {
     setRows((prev) =>
       prev.map((row) =>
-        row.posizione === posizione ? { ...row, [field]: value } : row
+        row.posizione === posizione
+          ? { ...row, [field]: value }
+          : row
       )
     )
+
+    return
   }
+
+  const missingRow = missingRows.find(
+    (row) => row.posizione === posizione
+  )
+
+  if (!missingRow?.teamNumber) return
+
+  setMissingRowsData((prev) => ({
+    ...prev,
+    [missingRow.teamNumber as string]: {
+      ...prev[missingRow.teamNumber as string],
+      [field]: value,
+    },
+  }))
+}
 
   function updateManualTime(posizione: number, next: ManualTimeParts) {
   setRows((prev) =>
@@ -607,7 +634,11 @@ const missingRows = useMemo<ExtractedRow[]>(() => {
 
   const startPosition = rows.length + 1
 
-  return missingPilots.map((pilot, index) => ({
+  return missingPilots.map((pilot, index) => {
+  const savedData =
+    missingRowsData[pilot.teamNumber] || {}
+
+  return {
     posizione: startPosition + index,
 
     pilota: pilot.pilot,
@@ -624,15 +655,27 @@ const missingRows = useMemo<ExtractedRow[]>(() => {
 
     pvcpEnabled: true,
 
-    pvcpRacePosition: String(
-      startPosition + index
-    ),
+    pvcpCrashLap:
+      savedData.pvcpCrashLap || "",
+
+    pvcpRacePosition:
+  savedData.pvcpRacePosition || "",
+
+    pvcpFrontTeam:
+      savedData.pvcpFrontTeam || "",
+
+    pvcpBackTeam:
+      savedData.pvcpBackTeam || "",
+
+    pvcpCalculatedGap:
+      savedData.pvcpCalculatedGap || "",
 
     distacco: "",
 
     tempoTotale: "",
-  }))
-}, [rows, expectedLobbyPilots])
+  }
+})
+}, [rows, expectedLobbyPilots, missingRowsData])
 
 const rowsWithCalculatedGap = useMemo<ExtractedRow[]>(() => {
   const allRows = [
