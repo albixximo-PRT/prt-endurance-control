@@ -825,6 +825,7 @@ async function handleExtract() {
     setError("")
     setRows([])
     setDebugText("")
+    setMissingRowsData({})
 
     try {
       const fd = new FormData()
