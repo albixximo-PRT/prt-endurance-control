@@ -610,7 +610,7 @@ const missingRows = useMemo<ExtractedRow[]>(() => {
   return missingPilots.map((pilot, index) => ({
     posizione: startPosition + index,
 
-    pilota: "⚠ PILOTA ASSENTE DAL RISULTATO",
+    pilota: pilot.pilot,
 
     officialPilot: pilot.pilot,
 
@@ -684,6 +684,26 @@ const rowsWithCalculatedGap = useMemo<ExtractedRow[]>(() => {
     }
   })
 }, [rows, lappedCorrectionSeconds])
+
+const hasUnconfirmedAliases = rows.some(
+  (row) =>
+    row.matchStatus === "warning" ||
+    row.matchStatus === "missing"
+)
+
+const hasIncompletePvcp = rowsWithCalculatedGap.some(
+  (row) =>
+    row.pvcpEnabled &&
+    (
+      !row.pvcpCrashLap ||
+      !row.pvcpRacePosition ||
+      !row.pvcpCalculatedGap
+    )
+)
+
+const raceControlBlocked =
+  hasUnconfirmedAliases ||
+  hasIncompletePvcp
 
 const releaseGrid = useMemo<ReleaseRow[]>(() => {
   const map = new Map<string, ReleaseRow>()
@@ -1038,7 +1058,13 @@ setDebugText(
     className="w-full rounded-lg bg-black/40 border border-white/10 px-2 py-1"
   />
 
-  {row.matchStatus === "safe" ? (
+  {row.isMissingFromResult ? (
+    <div className="mt-2 rounded-lg border border-red-500/30 bg-red-500/10 px-2 py-1 text-xs font-black text-red-200">
+      ⚠ ASSENTE DAL RISULTATO
+    </div>
+  ) : null}
+
+  {row.matchStatus === "safe" && !row.isMissingFromResult ? (
     <div className="mt-2 text-xs font-bold text-emerald-300">
       ✓ Associato a {row.matchedPilot}
     </div>
@@ -1416,18 +1442,38 @@ setDebugText(
         </tbody>
       </table>
 
-      <button
-        onClick={() => {
-          localStorage.setItem(
-            "prt-endurance-release-grid",
-            JSON.stringify(releaseGrid)
-          )
-          window.location.href = "/race-control"
-        }}
-        className="mt-6 rounded-xl bg-emerald-500 px-5 py-3 font-black text-black"
-      >
-        🚦 Avvia Race Control
-      </button>
+      {raceControlBlocked ? (
+  <div className="mt-6 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-red-200">
+    <div className="font-black">
+      ⚠ Race Control non disponibile
+    </div>
+
+    {hasUnconfirmedAliases ? (
+      <div className="mt-2 text-sm">
+        Conferma tutti gli alias ancora dubbi o non associati.
+      </div>
+    ) : null}
+
+    {hasIncompletePvcp ? (
+      <div className="mt-2 text-sm">
+        Completa tutti i dati PVCP e verifica che il gap sia stato calcolato.
+      </div>
+    ) : null}
+  </div>
+) : (
+  <button
+    onClick={() => {
+      localStorage.setItem(
+        "prt-endurance-release-grid",
+        JSON.stringify(releaseGrid)
+      )
+      window.location.href = "/race-control"
+    }}
+    className="mt-6 rounded-xl bg-emerald-500 px-5 py-3 font-black text-black"
+  >
+    🚦 Avvia Race Control
+  </button>
+)}
     </>
   )}
 </section>
