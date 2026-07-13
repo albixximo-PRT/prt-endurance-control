@@ -308,6 +308,54 @@ function calculatePvcpGap(
   return formatFullGap(gapMs)
 }
 
+function getPvcpDetails(crashLapValue?: string) {
+  const crashLap = Number(crashLapValue)
+
+  if (
+    !Number.isInteger(crashLap) ||
+    crashLap < 1 ||
+    crashLap > TOTAL_RACE_LAPS
+  ) {
+    return null
+  }
+
+  const missingLaps = TOTAL_RACE_LAPS - crashLap
+
+  if (crashLap <= 9) {
+    return {
+      sector: "Q1",
+      missingLaps,
+      recoveryIndexSeconds: 4,
+      baseCrashOffsetSeconds: 5,
+    }
+  }
+
+  if (crashLap <= 18) {
+    return {
+      sector: "Q2",
+      missingLaps,
+      recoveryIndexSeconds: 3,
+      baseCrashOffsetSeconds: 10,
+    }
+  }
+
+  if (crashLap <= 27) {
+    return {
+      sector: "Q3",
+      missingLaps,
+      recoveryIndexSeconds: 2,
+      baseCrashOffsetSeconds: 15,
+    }
+  }
+
+  return {
+    sector: "Q4",
+    missingLaps,
+    recoveryIndexSeconds: 1,
+    baseCrashOffsetSeconds: 20,
+  }
+}
+
 function manualTimePartsToFullTime(value?: ManualTimeParts) {
   if (!value) return ""
 
@@ -909,71 +957,105 @@ setDebugText(
       }}
     />
   ) : row.pvcpEnabled ? (
-    <div className="grid min-w-[300px] grid-cols-2 gap-2">
-      <input
-        type="number"
-        min="1"
-        max={TOTAL_RACE_LAPS}
-        placeholder="Giro crash"
-        value={row.pvcpCrashLap || ""}
-        onChange={(e) =>
-          updateResult(row.posizione, "pvcpCrashLap", e.target.value)
-        }
-        className="rounded-lg border border-white/10 bg-black/40 px-2 py-1 font-mono"
-      />
+    <div className="min-w-[300px]">
+      <div className="grid grid-cols-2 gap-2">
+        <input
+          type="number"
+          min="1"
+          max={TOTAL_RACE_LAPS}
+          placeholder="Giro crash"
+          value={row.pvcpCrashLap || ""}
+          onChange={(e) =>
+            updateResult(row.posizione, "pvcpCrashLap", e.target.value)
+          }
+          className="rounded-lg border border-white/10 bg-black/40 px-2 py-1 font-mono"
+        />
 
-      <input
-        type="number"
-        min="1"
-        placeholder="Posizione crash"
-        value={row.pvcpRacePosition || ""}
-        onChange={(e) =>
-          updateResult(row.posizione, "pvcpRacePosition", e.target.value)
-        }
-        className="rounded-lg border border-white/10 bg-black/40 px-2 py-1 font-mono"
-      />
+        <input
+          type="number"
+          min="1"
+          placeholder="Posizione crash"
+          value={row.pvcpRacePosition || ""}
+          onChange={(e) =>
+            updateResult(row.posizione, "pvcpRacePosition", e.target.value)
+          }
+          className="rounded-lg border border-white/10 bg-black/40 px-2 py-1 font-mono"
+        />
 
-      <select
-        value={row.pvcpFrontTeam || ""}
-        onChange={(e) =>
-          updateResult(row.posizione, "pvcpFrontTeam", e.target.value)
-        }
-        className="rounded-lg border border-white/10 bg-zinc-900 px-2 py-1"
-      >
-        <option value="">Team davanti</option>
+        <select
+          value={row.pvcpFrontTeam || ""}
+          onChange={(e) =>
+            updateResult(row.posizione, "pvcpFrontTeam", e.target.value)
+          }
+          className="rounded-lg border border-white/10 bg-zinc-900 px-2 py-1"
+        >
+          <option value="">Team davanti</option>
 
-        {rows
-          .filter((item) => item.posizione !== row.posizione)
-          .map((item) => (
-            <option
-              key={`front-${item.posizione}`}
-              value={item.teamNumber || ""}
-            >
-              Team {item.teamNumber || "?"} — P{item.posizione}
-            </option>
-          ))}
-      </select>
+          {rows
+            .filter((item) => item.posizione !== row.posizione)
+            .map((item) => (
+              <option
+                key={`front-${item.posizione}`}
+                value={item.teamNumber || ""}
+              >
+                Team {item.teamNumber || "?"} — P{item.posizione}
+              </option>
+            ))}
+        </select>
 
-      <select
-        value={row.pvcpBackTeam || ""}
-        onChange={(e) =>
-          updateResult(row.posizione, "pvcpBackTeam", e.target.value)
-        }
-        className="rounded-lg border border-white/10 bg-zinc-900 px-2 py-1"
-      >
-        <option value="">Team dietro</option>
+        <select
+          value={row.pvcpBackTeam || ""}
+          onChange={(e) =>
+            updateResult(row.posizione, "pvcpBackTeam", e.target.value)
+          }
+          className="rounded-lg border border-white/10 bg-zinc-900 px-2 py-1"
+        >
+          <option value="">Team dietro</option>
 
-        {rows
-          .filter((item) => item.posizione !== row.posizione)
-          .map((item) => (
-            <option
-              key={`back-${item.posizione}`}
-              value={item.teamNumber || ""}
-            >
-              Team {item.teamNumber || "?"} — P{item.posizione}
-            </option>
-          ))}
-      </select>
+          {rows
+            .filter((item) => item.posizione !== row.posizione)
+            .map((item) => (
+              <option
+                key={`back-${item.posizione}`}
+                value={item.teamNumber || ""}
+              >
+                Team {item.teamNumber || "?"} — P{item.posizione}
+              </option>
+            ))}
+        </select>
+      </div>
+
+      {getPvcpDetails(row.pvcpCrashLap) ? (
+        <div className="mt-3 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-xs">
+          <div>
+            Settore:{" "}
+            <span className="font-black">
+              {getPvcpDetails(row.pvcpCrashLap)?.sector}
+            </span>
+          </div>
+
+          <div>
+            Giri mancanti:{" "}
+            <span className="font-black">
+              {getPvcpDetails(row.pvcpCrashLap)?.missingLaps}
+            </span>
+          </div>
+
+          <div>
+            Recovery Index:{" "}
+            <span className="font-black">
+              {getPvcpDetails(row.pvcpCrashLap)?.recoveryIndexSeconds} s/giro
+            </span>
+          </div>
+
+          <div>
+            Base Crash Offset:{" "}
+            <span className="font-black">
+              +{getPvcpDetails(row.pvcpCrashLap)?.baseCrashOffsetSeconds} s
+            </span>
+          </div>
+        </div>
+      ) : null}
     </div>
   ) : (
     <span className="text-zinc-600">-</span>
