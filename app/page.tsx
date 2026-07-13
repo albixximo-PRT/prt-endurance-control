@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
+import { toPng } from "html-to-image"
 import LappedTimeInput, { type ManualTimeParts } from "@/components/LappedTimeInput"
 
 type ExtractedRow = {
@@ -409,6 +410,7 @@ export default function Home() {
   const [timerMs, setTimerMs] = useState(0)
   const [lappedCorrectionSeconds, setLappedCorrectionSeconds] = useState("3.000")
 const [timerRunning, setTimerRunning] = useState(false)
+const releaseGridExportRef = useRef<HTMLDivElement | null>(null)
 const timerStartRef = useRef<number | null>(null)
 
   useEffect(() => {
@@ -814,6 +816,29 @@ return sortedRows.map((row) => ({
   ),
 }))
 }, [rowsWithCalculatedGap, teams])
+
+async function exportReleaseGridPng() {
+  const node = releaseGridExportRef.current
+
+  if (!node || !releaseGrid.length) return
+
+  try {
+    const dataUrl = await toPng(node, {
+      pixelRatio: 2,
+      backgroundColor: "#09090b",
+      cacheBust: true,
+    })
+
+    const link = document.createElement("a")
+
+    link.download = `PRT-Endurance-Control-Lobby-${selectedLobby}.png`
+    link.href = dataUrl
+    link.click()
+  } catch (error) {
+    console.error("Errore durante il salvataggio PNG:", error)
+    setError("Impossibile salvare la griglia in PNG.")
+  }
+}
 
 async function handleExtract() {
     if (!files.length) {
@@ -1537,81 +1562,128 @@ setDebugText(
     </p>
   ) : (
     <>
-      <table className="w-full border-collapse text-sm">
-        <thead>
-          <tr className="text-left text-zinc-400">
-            <th className="border-b border-white/10 p-2">Ordine rilascio</th>
-            <th className="border-b border-white/10 p-2">Team</th>
-            <th className="border-b border-white/10 p-2">Nome Team</th>
-            <th className="border-b border-white/10 p-2">Pilota rilevato</th>
-            <th className="border-b border-white/10 p-2">Pos. arrivo</th>
-            <th className="border-b border-white/10 p-2">Rilascio</th>
-          </tr>
-        </thead>
+      <div
+        ref={releaseGridExportRef}
+        className="bg-zinc-950 p-6 text-white"
+      >
+        <div className="mb-5">
+          <div className="text-3xl font-black">
+            PRT Endurance Control
+          </div>
 
-        <tbody>
-          {releaseGrid.map((team, index) => (
-            <tr key={team.teamNumber}>
-              <td className="border-b border-white/5 p-2 font-mono">
-                {index + 1}
-              </td>
+          <div className="mt-1 text-lg font-bold text-yellow-300">
+            Lobby {selectedLobby}
+          </div>
 
-              <td className="border-b border-white/5 p-2 font-mono font-black">
-                {team.teamNumber}
-              </td>
+          <div className="mt-4 text-xl font-black">
+            Griglia rilascio lobby successiva
+          </div>
+        </div>
 
-              <td className="border-b border-white/5 p-2">
-                {team.teamName || "-"}
-              </td>
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr className="text-left text-zinc-400">
+              <th className="border-b border-white/10 p-2">
+                Ordine rilascio
+              </th>
 
-              <td className="border-b border-white/5 p-2">
-                {team.pilot}
-              </td>
+              <th className="border-b border-white/10 p-2">
+                Team
+              </th>
 
-              <td className="border-b border-white/5 p-2 font-mono">
-                P{team.position}
-              </td>
+              <th className="border-b border-white/10 p-2">
+                Nome Team
+              </th>
 
-              <td className="border-b border-white/5 p-2 font-mono font-black">
-                {team.releaseTime}
-              </td>
+              <th className="border-b border-white/10 p-2">
+                Pilota rilevato
+              </th>
+
+              <th className="border-b border-white/10 p-2">
+                Pos. arrivo
+              </th>
+
+              <th className="border-b border-white/10 p-2">
+                Rilascio
+              </th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+
+          <tbody>
+            {releaseGrid.map((team, index) => (
+              <tr key={team.teamNumber}>
+                <td className="border-b border-white/5 p-2 font-mono">
+                  {index + 1}
+                </td>
+
+                <td className="border-b border-white/5 p-2 font-mono font-black">
+                  {team.teamNumber}
+                </td>
+
+                <td className="border-b border-white/5 p-2">
+                  {team.teamName || "-"}
+                </td>
+
+                <td className="border-b border-white/5 p-2">
+                  {team.pilot}
+                </td>
+
+                <td className="border-b border-white/5 p-2 font-mono">
+                  P{team.position}
+                </td>
+
+                <td className="border-b border-white/5 p-2 font-mono font-black">
+                  {team.releaseTime}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <button
+        type="button"
+        onClick={exportReleaseGridPng}
+        className="mt-6 mr-3 rounded-xl bg-sky-500 px-5 py-3 font-black text-black"
+      >
+        💾 SALVA PNG
+      </button>
 
       {raceControlBlocked ? (
-  <div className="mt-6 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-red-200">
-    <div className="font-black">
-      ⚠ Race Control non disponibile
-    </div>
+        <div className="mt-6 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-red-200">
+          <div className="font-black">
+            ⚠ Race Control non disponibile
+          </div>
 
-    {hasUnconfirmedAliases ? (
-      <div className="mt-2 text-sm">
-        Conferma tutti gli alias ancora dubbi o non associati.
-      </div>
-    ) : null}
+          {hasUnconfirmedAliases ? (
+            <div className="mt-2 text-sm">
+              Conferma tutti gli alias ancora dubbi o non associati.
+            </div>
+          ) : null}
 
-    {hasIncompletePvcp ? (
-      <div className="mt-2 text-sm">
-        Completa tutti i dati PVCP e verifica che il gap sia stato calcolato.
-      </div>
-    ) : null}
-  </div>
-) : (
-  <button
-    onClick={() => {
-      localStorage.setItem(
-        "prt-endurance-release-grid",
-        JSON.stringify(releaseGrid)
-      )
-      window.location.href = "/race-control"
-    }}
-    className="mt-6 rounded-xl bg-emerald-500 px-5 py-3 font-black text-black"
-  >
-    🚦 Avvia Race Control
-  </button>
-)}
+          {hasIncompletePvcp ? (
+            <div className="mt-2 text-sm">
+              Completa tutti i dati PVCP e verifica che il gap sia stato
+              calcolato.
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => {
+            localStorage.setItem(
+              "prt-endurance-release-grid",
+              JSON.stringify(releaseGrid)
+            )
+
+            window.location.href = "/race-control"
+          }}
+          className="mt-6 rounded-xl bg-emerald-500 px-5 py-3 font-black text-black"
+        >
+          🚦 Avvia Race Control
+        </button>
+      )}
     </>
   )}
 </section>
