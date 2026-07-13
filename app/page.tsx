@@ -13,6 +13,8 @@ type ExtractedRow = {
 matchStatus?: "safe" | "warning" | "missing"
 matchScore?: number
 aliasConfirmed?: boolean
+isMissingFromResult?: boolean
+officialPilot?: string
 
   fastestLap?: string
   lapsDown?: number
@@ -574,12 +576,76 @@ function confirmPilotAlias(
   )
 }
 
+const expectedLobbyPilots = useMemo(() => {
+  return teams
+    .map((team) => {
+      const pilot = getPilotForSelectedLobby(team)
+
+      return {
+        teamNumber: team.numeroTeam,
+        teamName: team.nomeTeam,
+        pilot,
+      }
+    })
+    .filter((item) => item.pilot)
+}, [teams, selectedLobby])
+
+const missingRows = useMemo<ExtractedRow[]>(() => {
+  const confirmedTeams = new Set(
+    rows
+      .filter(
+        (row) =>
+          row.teamNumber &&
+          row.matchStatus === "safe"
+      )
+      .map((row) => row.teamNumber)
+  )
+
+  const missingPilots = expectedLobbyPilots.filter(
+    (pilot) => !confirmedTeams.has(pilot.teamNumber)
+  )
+
+  const startPosition = rows.length + 1
+
+  return missingPilots.map((pilot, index) => ({
+    posizione: startPosition + index,
+
+    pilota: "⚠ PILOTA ASSENTE DAL RISULTATO",
+
+    officialPilot: pilot.pilot,
+
+    teamNumber: pilot.teamNumber,
+
+    matchStatus: "safe",
+
+    aliasConfirmed: true,
+
+    isMissingFromResult: true,
+
+    pvcpEnabled: true,
+
+    pvcpRacePosition: String(
+      startPosition + index
+    ),
+
+    distacco: "",
+
+    tempoTotale: "",
+  }))
+}, [rows, expectedLobbyPilots])
+
 const rowsWithCalculatedGap = useMemo<ExtractedRow[]>(() => {
-  const winner = rows.find((row) => row.posizione === 1)
+  const allRows = [
+    ...rows,
+    ...missingRows,
+  ]
+  const winner = allRows.find(
+  (row) => row.posizione === 1
+)
 
-  if (!winner) return rows
+  if (!winner) return allRows
 
-  return rows.map((row) => {
+  return allRows.map((row) => {
     const manualTotalTime = manualTimePartsToFullTime(row.manualTime)
 
     const calculatedGap = row.lapsDown
