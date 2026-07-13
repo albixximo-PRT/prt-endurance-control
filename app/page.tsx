@@ -48,6 +48,7 @@ type ReleaseRow = {
   position: number
   pilot: string
   releaseTime: string
+  raceResultTime: string
 
   penaltySeconds: number
   hasPenalty: boolean
@@ -776,6 +777,12 @@ const releaseGrid = useMemo<ReleaseRow[]>(() => {
   teamName: team?.nomeTeam || "",
   position: row.posizione,
   pilot: row.pilota,
+  raceResultTime:
+  row.posizione === 1
+    ? row.tempoTotale || "-"
+    : row.pvcpCalculatedGap ||
+      row.calculatedGap ||
+      formatTimer(parseReleaseTimeToMs(row.distacco)),
 
   penaltySeconds: row.manualPenaltyEnabled
     ? Math.max(
@@ -1617,6 +1624,8 @@ setDebugText(
       <div
   ref={releaseGridExportRef}
   className="
+    aspect-video
+    w-[1600px]
     overflow-hidden
     rounded-[32px]
     border border-white/10
@@ -1637,13 +1646,27 @@ setDebugText(
     <div className="relative flex items-center justify-between gap-6">
 
       <div>
-        <div className="text-5xl font-black tracking-tight">
-          {exportMainTitle}
-        </div>
+        <div
+  className="text-5xl uppercase tracking-[0.08em] text-yellow-300"
+  style={{
+    fontFamily: '"Vampire Wars", sans-serif',
+    textShadow:
+      "0 0 10px rgba(250,204,21,0.65), 0 0 28px rgba(250,204,21,0.3)",
+  }}
+>
+  {exportMainTitle}
+</div>
 
-        <div className="mt-2 text-3xl font-bold text-yellow-300">
-          {exportEventName}
-        </div>
+        <div
+  className="mt-2 text-4xl uppercase tracking-[0.12em] text-white"
+  style={{
+    fontFamily: '"Vampire Wars", sans-serif',
+    textShadow:
+      "0 0 10px rgba(255,255,255,0.35), 0 0 24px rgba(168,85,247,0.35)",
+  }}
+>
+  {exportEventName}
+</div>
 
         <div
           className="
@@ -1663,7 +1686,7 @@ setDebugText(
       <img
         src="/endurance/endurance-division-logo.png"
         alt="PRT Endurance Division"
-        className="h-40 w-40 object-contain"
+        className="h-56 w-56 object-contain"
       />
     </div>
   </div>
@@ -1685,12 +1708,16 @@ setDebugText(
       </th>
 
       <th className="border-b border-white/10 px-4 py-4">
-        Pos. stint
-      </th>
+  Pos. stint
+</th>
 
-      <th className="border-b border-white/10 px-4 py-4">
-        Direzione Gara
-      </th>
+<th className="border-b border-white/10 px-4 py-4">
+  Risultato gara
+</th>
+
+<th className="border-b border-white/10 px-4 py-4">
+  Direzione Gara
+</th>
 
       <th className="border-b border-white/10 px-4 py-4 text-right">
         {exportTimeLabel}
@@ -1744,28 +1771,39 @@ setDebugText(
           </td>
 
           <td className="border-b border-white/[0.07] px-4 py-4">
-            <span className="inline-flex rounded-lg border border-white/10 bg-white/5 px-3 py-1 font-mono font-bold text-zinc-300">
-              P{team.position}
-            </span>
-          </td>
+  <span className="inline-flex rounded-lg border border-white/10 bg-white/5 px-3 py-1 font-mono font-bold text-zinc-300">
+    P{team.position}
+  </span>
+</td>
 
-          <td className="border-b border-white/[0.07] px-4 py-4">
+<td className="border-b border-white/[0.07] px-4 py-4">
+  <span className="font-mono text-base font-black text-white">
+    {team.position === 1 && selectedLobby === 3
+      ? team.raceResultTime
+      : team.position === 1
+        ? team.raceResultTime
+        : `+${team.raceResultTime}`}
+  </span>
+</td>
+
+<td className="border-b border-white/[0.07] px-4 py-4">
             <div className="flex flex-wrap items-center gap-2">
               {team.hasPenalty ? (
                 <span className="inline-flex items-center rounded-lg border border-orange-400/40 bg-orange-500/15 px-3 py-2 font-mono text-xs font-black text-orange-200 shadow-[0_0_18px_rgba(249,115,22,0.16)]">
-                  PENALITÀ +{team.penaltySeconds.toFixed(3)} s
+                  PENALITÀ +{team.penaltySeconds} sec
                 </span>
               ) : null}
 
               {team.isPvcp ? (
                 <span className="inline-flex items-center rounded-lg border border-fuchsia-400/40 bg-fuchsia-500/15 px-3 py-2 text-xs font-black text-fuchsia-200 shadow-[0_0_18px_rgba(217,70,239,0.18)]">
-                  PVCP
-                  {team.pvcpCrashLap
-                    ? ` • GIRO ${team.pvcpCrashLap}`
-                    : ""}
-                  {team.pvcpRacePosition
-                    ? ` • P${team.pvcpRacePosition}`
-                    : ""}
+                  Crash Protocol
+{team.pvcpCrashLap
+  ? ` Lap[${team.pvcpCrashLap}]`
+  : ""}
+
+{team.pvcpRacePosition
+  ? ` - Pos[${team.pvcpRacePosition}]`
+  : ""}
                 </span>
               ) : null}
 
