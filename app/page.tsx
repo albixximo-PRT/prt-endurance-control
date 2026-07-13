@@ -826,31 +826,34 @@ setDebugText(
       </div>
     ) : null}
 
-    <label className="flex items-center gap-2 text-xs font-bold">
-      <input
-        type="checkbox"
-        checked={Boolean(row.pvcpEnabled)}
-        disabled={Boolean(row.lapsDown)}
-        onChange={(e) =>
-          setRows((prev) =>
-            prev.map((item) =>
-              item.posizione === row.posizione
-                ? {
-                    ...item,
-                    pvcpEnabled: e.target.checked,
-                    pvcpCrashLap: "",
-                    pvcpRacePosition: "",
-                    pvcpFrontTeam: "",
-                    pvcpBackTeam: "",
-                  }
-                : item
-            )
-          )
-        }
-      />
-
-      NON FINITO — PVCP
-    </label>
+    {!row.lapsDown ? (
+  <button
+    type="button"
+    onClick={() =>
+      setRows((prev) =>
+        prev.map((item) =>
+          item.posizione === row.posizione
+            ? {
+                ...item,
+                pvcpEnabled: !item.pvcpEnabled,
+                pvcpCrashLap: "",
+                pvcpRacePosition: "",
+                pvcpFrontTeam: "",
+                pvcpBackTeam: "",
+              }
+            : item
+        )
+      )
+    }
+    className={
+      row.pvcpEnabled
+        ? "rounded-lg bg-red-500 px-3 py-1 text-xs font-black text-white"
+        : "rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-xs font-bold text-zinc-400 hover:bg-white/10"
+    }
+  >
+    {row.pvcpEnabled ? "PVCP ATTIVO" : "+ CASO PVCP"}
+  </button>
+) : null}
 
     {!row.lapsDown && !row.pvcpEnabled ? (
       <span className="text-xs text-zinc-600">Nessun intervento</span>
