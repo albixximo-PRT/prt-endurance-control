@@ -9,6 +9,10 @@ type ExtractedRow = {
   distacco: string
   tempoTotale: string
   teamNumber?: string
+  matchedPilot?: string
+matchStatus?: "safe" | "warning" | "missing"
+matchScore?: number
+aliasConfirmed?: boolean
 
   fastestLap?: string
   lapsDown?: number
@@ -390,6 +394,7 @@ export default function Home() {
   const [files, setFiles] = useState<File[]>([])
   const [rows, setRows] = useState<ExtractedRow[]>([])
   const [teams, setTeams] = useState<TeamRow[]>([])
+  const [selectedLobby, setSelectedLobby] = useState<1 | 2 | 3>(1)
   const [debugText, setDebugText] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
@@ -422,32 +427,45 @@ const timerStartRef = useRef<number | null>(null)
   return () => window.clearInterval(interval)
 }, [timerRunning])
 
-  function findTeamNumberByPilot(pilotName: string) {
-  const candidates = teams.flatMap((team) =>
-    [
-      team.pilotaLobby1,
-      team.pilotaLobby2,
-      team.pilotaLobby3,
-    ]
-      .filter(Boolean)
-      .map((pilot) => ({
+ function getPilotForSelectedLobby(team: TeamRow) {
+  if (selectedLobby === 1) return team.pilotaLobby1
+  if (selectedLobby === 2) return team.pilotaLobby2
+  return team.pilotaLobby3
+} 
+
+function findPilotMatch(pilotName: string) {
+  const candidates = teams
+    .map((team) => {
+      const pilot = getPilotForSelectedLobby(team)
+
+      return {
         pilot,
         teamNumber: team.numeroTeam,
         score: computePilotSimilarityScore(pilotName, pilot),
-      }))
-  )
+      }
+    })
+    .filter((candidate) => candidate.pilot)
 
   const ranked = candidates.sort((a, b) => b.score - a.score)
 
   const best = ranked[0]
   const second = ranked[1]
 
-  if (!best) return ""
+  if (!best) {
+    return {
+      teamNumber: "",
+      matchedPilot: "",
+      matchStatus: "missing" as const,
+      matchScore: 0,
+      aliasConfirmed: false,
+    }
+  }
 
   const normalizedPilot = normalizeName(pilotName)
   const normalizedBest = normalizeName(best.pilot)
 
   const exact = normalizedPilot === normalizedBest
+
   const contained =
     normalizedBest.includes(normalizedPilot) ||
     normalizedPilot.includes(normalizedBest)
@@ -460,7 +478,21 @@ const timerStartRef = useRef<number | null>(null)
     (contained && normalizedPilot.length >= 5 && best.score >= 0.90) ||
     (best.score >= 0.88 && gap >= 0.06)
 
-  return isSafeMatch ? best.teamNumber : ""
+  const isWarningMatch =
+    !isSafeMatch &&
+    best.score >= 0.65
+
+  return {
+    teamNumber: isSafeMatch ? best.teamNumber : "",
+    matchedPilot: best.pilot,
+    matchStatus: isSafeMatch
+      ? ("safe" as const)
+      : isWarningMatch
+        ? ("warning" as const)
+        : ("missing" as const),
+    matchScore: best.score,
+    aliasConfirmed: isSafeMatch,
+  }
 }
 
   function updateTeam(
@@ -503,10 +535,14 @@ const timerStartRef = useRef<number | null>(null)
 
   function rematchTeams() {
   setRows((prev) =>
-    prev.map((row) => ({
-      ...row,
-      teamNumber: findTeamNumberByPilot(row.pilota),
-    }))
+    prev.map((row) => {
+      const match = findPilotMatch(row.pilota)
+
+      return {
+        ...row,
+        ...match,
+      }
+    })
   )
 }
 
@@ -618,10 +654,14 @@ async function handleExtract() {
 
       const extractedRows: ExtractedRow[] = data.rows || []
 
-      const rowsWithTeams = extractedRows.map((row) => ({
-        ...row,
-        teamNumber: findTeamNumberByPilot(row.pilota),
-      }))
+      const rowsWithTeams = extractedRows.map((row) => {
+  const match = findPilotMatch(row.pilota)
+
+  return {
+    ...row,
+    ...match,
+  }
+})
 
       setRows(rowsWithTeams)
 
@@ -740,6 +780,36 @@ setDebugText(
         )}
       </section>
 
+      <section className="rounded-2xl border border-white/10 bg-white/5 p-5 mb-6">
+  <h2 className="text-xl font-bold mb-4">
+    Lobby da elaborare
+  </h2>
+
+  <div className="flex flex-wrap gap-3">
+    {([1, 2, 3] as const).map((lobby) => (
+      <button
+        key={lobby}
+        type="button"
+        onClick={() => setSelectedLobby(lobby)}
+        className={
+          selectedLobby === lobby
+            ? "rounded-xl bg-yellow-400 px-5 py-3 font-black text-black"
+            : "rounded-xl border border-white/10 bg-white/5 px-5 py-3 font-bold text-zinc-300 hover:bg-white/10"
+        }
+      >
+        Lobby {lobby}
+      </button>
+    ))}
+  </div>
+
+  <div className="mt-4 text-sm text-zinc-400">
+    Verranno utilizzati esclusivamente i piloti registrati in{" "}
+    <span className="font-black text-yellow-300">
+      Lobby {selectedLobby}
+    </span>
+  </div>
+</section>
+      
       <section className="rounded-2xl border border-white/10 bg-white/5 p-5 mb-6">
   <h2 className="text-xl font-bold mb-4">
     Correttivo doppiati
