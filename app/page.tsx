@@ -859,17 +859,22 @@ return sortedRows.map((row) => ({
 }, [rowsWithCalculatedGap, teams])
 
 const exportMainTitle =
-  "PRT Endurance Division"
+  "PRT Endurance Challenge"
 
 const exportEventName =
   "3H Daytona"
 
-const exportSubtitle =
+const exportSubtitlePrefix =
+  selectedLobby === 3
+    ? "Ordine d'arrivo dopo"
+    : "Griglia di rilascio dopo"
+
+const exportStintLabel =
   selectedLobby === 1
-    ? "Griglia di rilascio dopo [STINT 1]"
+    ? "STINT 1"
     : selectedLobby === 2
-      ? "Griglia di rilascio dopo [STINT 2]"
-      : "Ordine d'arrivo dopo [STINT 3]"
+      ? "STINT 2"
+      : "STINT 3"
 
 const exportTimeLabel =
   selectedLobby === 3
@@ -1694,59 +1699,98 @@ w-[1600px]
           "
         >
           <div className="relative h-[155px] overflow-hidden border-b border-white/10 px-8 py-4">
-            <div
-              className="
-                absolute inset-0
-                bg-[radial-gradient(circle_at_top_left,_rgba(255,215,0,0.18),_transparent_35%),radial-gradient(circle_at_top_right,_rgba(139,92,246,0.18),_transparent_35%)]
-              "
-            />
+  <div
+    className="
+      absolute inset-0
+      bg-[radial-gradient(circle_at_top_left,_rgba(255,215,0,0.18),_transparent_35%),radial-gradient(circle_at_top_right,_rgba(139,92,246,0.18),_transparent_35%)]
+    "
+  />
 
-            <div className="relative flex items-center justify-between gap-6">
-              <div>
-                <div
-                  className="text-3xl uppercase tracking-[0.08em] text-yellow-300"
-                  style={{
-                    fontFamily: '"Vampire Wars", sans-serif',
-                    textShadow:
-                      "0 0 10px rgba(250,204,21,0.65), 0 0 28px rgba(250,204,21,0.3)",
-                  }}
-                >
-                  {exportMainTitle}
-                </div>
+  <div className="relative flex h-full items-center justify-between gap-8">
+    <div className="min-w-0 flex-1">
+      <div
+        className="text-3xl uppercase tracking-[0.08em] text-yellow-300"
+        style={{
+          fontFamily: '"Vampire Wars", sans-serif',
+          textShadow:
+            "0 0 10px rgba(250,204,21,0.75), 0 0 30px rgba(250,204,21,0.35)",
+        }}
+      >
+        {exportMainTitle}
+      </div>
 
-                <div
-                  className="mt-2 text-4xl uppercase tracking-[0.12em] text-white"
-                  style={{
-                    fontFamily: '"Vampire Wars", sans-serif',
-                    textShadow:
-                      "0 0 10px rgba(255,255,255,0.35), 0 0 24px rgba(168,85,247,0.35)",
-                  }}
-                >
-                  {exportEventName}
-                </div>
+      <div className="mt-4 flex items-center gap-7">
+        <div
+          className="shrink-0 text-4xl uppercase tracking-[0.12em] text-white"
+          style={{
+            fontFamily: '"Vampire Wars", sans-serif',
+            textShadow:
+              "0 0 10px rgba(255,255,255,0.35), 0 0 24px rgba(168,85,247,0.35)",
+          }}
+        >
+          {exportEventName}
+        </div>
 
-                <div
-                  className="
-                    mt-3 inline-flex
-                    rounded-full
-                    border border-white/15
-                    bg-white/5
-                    px-5 py-2
-                    text-lg font-bold
-                    backdrop-blur-xl
-                  "
-                >
-                  {exportSubtitle}
-                </div>
-              </div>
+        <div
+          className="
+            relative
+            inline-flex
+            min-w-0
+            items-center
+            gap-3
+            overflow-hidden
+            rounded-xl
+            border border-fuchsia-400/50
+            bg-[linear-gradient(90deg,rgba(217,70,239,0.16),rgba(250,204,21,0.10),rgba(217,70,239,0.12))]
+            px-6 py-3
+            text-[17px]
+            font-black
+            uppercase
+            tracking-[0.04em]
+            shadow-[0_0_18px_rgba(217,70,239,0.22),0_0_28px_rgba(250,204,21,0.12)]
+          "
+        >
+          <div
+            className="
+              absolute inset-x-8 top-0 h-px
+              bg-gradient-to-r
+              from-transparent
+              via-yellow-300/80
+              to-transparent
+            "
+          />
 
-              <img
-  src="/endurance/endurance-division-logo.png"
-  alt="PRT Endurance Division"
-  className="h-32 w-32 object-contain drop-shadow-[0_0_20px_rgba(250,204,21,0.25)]"
-/>
-            </div>
-          </div>
+          <span className="whitespace-nowrap text-white">
+            {exportSubtitlePrefix}
+          </span>
+
+          <span
+            className="whitespace-nowrap text-yellow-300"
+            style={{
+              textShadow:
+                "0 0 8px rgba(250,204,21,0.9), 0 0 18px rgba(250,204,21,0.45)",
+            }}
+          >
+            {exportStintLabel}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <img
+      src="/endurance/endurance-division-logo.png"
+      alt="PRT Endurance Division"
+      className="
+        h-32
+        w-32
+        shrink-0
+        object-contain
+        mix-blend-screen
+        drop-shadow-[0_0_22px_rgba(250,204,21,0.28)]
+      "
+    />
+  </div>
+</div>
 
           <div className="px-6 py-2">
             <table className="w-full table-fixed border-separate border-spacing-0 text-[13px]">
@@ -1785,7 +1829,7 @@ w-[1600px]
                   return (
                     <tr
                       key={`export-${team.teamNumber}`}
-                      className={`h-[42px] ${
+                      className={`h-[46px] ${
                         isFirst
                           ? "bg-[linear-gradient(90deg,rgba(234,179,8,0.18),rgba(234,179,8,0.04),transparent)]"
                           : index % 2 === 0
@@ -1797,8 +1841,8 @@ w-[1600px]
                         <div
                           className={
                             isFirst
-                              ? "flex h-6 w-6 items-center justify-center rounded-full border border-yellow-300/60 bg-yellow-400/15 font-mono text-[11px] font-black text-yellow-300 shadow-[0_0_14px_rgba(250,204,21,0.22)]"
-                              : "flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-black/30 font-mono text-[11px] font-bold text-zinc-300"
+                              ? "flex h-7 w-7 items-center justify-center rounded-full border border-yellow-300/60 bg-yellow-400/15 font-mono text-[12px] font-black text-yellow-300 shadow-[0_0_14px_rgba(250,204,21,0.22)]"
+                              : "flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-black/30 font-mono text-[12px] font-bold text-zinc-300"
                           }
                         >
                           {index + 1}
@@ -1809,8 +1853,8 @@ w-[1600px]
                         <div
                           className={
                             isFirst
-                              ? "inline-flex min-w-20 items-center justify-center whitespace-nowrap rounded-lg border border-yellow-300/40 bg-yellow-400/10 px-3 py-1 text-[13px] font-black text-yellow-200 shadow-[0_0_14px_rgba(250,204,21,0.14)]"
-                              : "inline-flex min-w-20 items-center justify-center whitespace-nowrap rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-[13px] font-black text-white"
+                              ? "inline-flex min-w-20 items-center justify-center whitespace-nowrap rounded-lg border border-yellow-300/40 bg-yellow-400/10 px-3 py-1.5 text-[14px] font-black text-yellow-200 shadow-[0_0_14px_rgba(250,204,21,0.14)]"
+                              : "inline-flex min-w-20 items-center justify-center whitespace-nowrap rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[14px] font-black text-white"
                           }
                         >
                           TEAM {team.teamNumber}
@@ -1818,13 +1862,13 @@ w-[1600px]
                       </td>
 
                       <td className="border-b border-white/[0.07] px-4 py-0">
-                        <div className="truncate text-[13px] font-black text-white">
+                        <div className="truncate text-[14px] font-black text-white">
                           {team.pilot}
                         </div>
                       </td>
 
                       <td className="border-b border-white/[0.07] px-4 py-0">
-                        <span className="whitespace-nowrap font-mono text-[13px] font-black text-white">
+                        <span className="whitespace-nowrap font-mono text-[14px] font-black text-white">
                           {team.position === 1
                             ? team.raceResultTime
                             : `+${team.raceResultTime}`}
@@ -1861,8 +1905,8 @@ w-[1600px]
                         <span
                           className={
                             isFirst
-                              ? "whitespace-nowrap font-mono text-[13px] font-black text-yellow-300 drop-shadow-[0_0_8px_rgba(250,204,21,0.4)]"
-                              : "whitespace-nowrap font-mono text-[13px] font-black text-white"
+                              ? "whitespace-nowrap font-mono text-[14px] font-black text-yellow-300 drop-shadow-[0_0_8px_rgba(250,204,21,0.4)]"
+                              : "whitespace-nowrap font-mono text-[14px] font-black text-white"
                           }
                         >
                           {selectedLobby === 3 && index > 0 ? "+" : ""}
@@ -1875,11 +1919,31 @@ w-[1600px]
               </tbody>
             </table>
 
-            <div className="flex h-[24px] items-end justify-between px-4 text-[9px] font-bold uppercase tracking-[0.14em] text-zinc-500">
-              <span>Poison Racing Team</span>
+            <div className="flex h-[38px] items-end justify-between px-4 pb-1 text-[9px] font-bold uppercase tracking-[0.14em] text-zinc-500">
+  <span>Poison Racing Team</span>
 
-              <span>Generated by PRT Endurance Control</span>
-            </div>
+  <div className="flex flex-col items-end gap-1 text-right">
+    <span>
+      Generated with{" "}
+      <span className="text-yellow-300">
+        PRT Endurance Control
+      </span>
+    </span>
+
+    <span>
+      Powered by{" "}
+      <span
+        className="text-yellow-300"
+        style={{
+          textShadow:
+            "0 0 8px rgba(250,204,21,0.45)",
+        }}
+      >
+        Albixximo
+      </span>
+    </span>
+  </div>
+</div>
           </div>
         </div>
       </div>
