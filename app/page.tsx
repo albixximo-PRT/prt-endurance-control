@@ -794,11 +794,25 @@ const releaseGrid = useMemo<ReleaseRow[]>(() => {
     }
   }
 
-  return Array.from(map.values()).sort(
+  const sortedRows = Array.from(map.values()).sort(
   (a, b) =>
     parseReleaseTimeToMs(a.releaseTime) -
     parseReleaseTimeToMs(b.releaseTime)
 )
+
+if (!sortedRows.length) return []
+
+const firstTimeMs = parseReleaseTimeToMs(
+  sortedRows[0].releaseTime
+)
+
+return sortedRows.map((row) => ({
+  ...row,
+  releaseTime: formatTimer(
+    parseReleaseTimeToMs(row.releaseTime) -
+      firstTimeMs
+  ),
+}))
 }, [rowsWithCalculatedGap, teams])
 
 async function handleExtract() {
