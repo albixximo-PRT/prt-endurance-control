@@ -21,6 +21,9 @@ officialPilot?: string
   manualTime?: ManualTimeParts
   calculatedGap?: string
 
+  manualPenaltyEnabled?: boolean
+manualPenaltySeconds?: string
+
   pvcpEnabled?: boolean
   pvcpCrashLap?: string
   pvcpRacePosition?: string
@@ -764,12 +767,29 @@ const releaseGrid = useMemo<ReleaseRow[]>(() => {
         teamName: team?.nomeTeam || "",
         position: row.posizione,
         pilot: row.pilota,
-        releaseTime:
-  row.posizione === 1
-    ? "00:00.000"
-    : row.pvcpCalculatedGap ||
-      row.calculatedGap ||
-      formatTimer(parseReleaseTimeToMs(row.distacco)),
+        releaseTime: (() => {
+  const baseTime =
+    row.posizione === 1
+      ? "00:00.000"
+      : row.pvcpCalculatedGap ||
+        row.calculatedGap ||
+        formatTimer(parseReleaseTimeToMs(row.distacco))
+
+  const penaltyMs =
+    row.manualPenaltyEnabled
+      ? Math.max(
+          0,
+          Number(
+            String(row.manualPenaltySeconds || "")
+              .replace(",", ".")
+          ) || 0
+        ) * 1000
+      : 0
+
+  return formatTimer(
+    parseReleaseTimeToMs(baseTime) + penaltyMs
+  )
+})(),
       })
     }
   }
@@ -1256,41 +1276,101 @@ setDebugText(
     ) : null}
 
     {!row.lapsDown ? (
-  <button
-    type="button"
-    onClick={() =>
-      setRows((prev) =>
-        prev.map((item) =>
-          item.posizione === row.posizione
-            ? {
-                ...item,
-                pvcpEnabled: !item.pvcpEnabled,
-                pvcpCrashLap: "",
-                pvcpRacePosition: "",
-                pvcpFrontTeam: "",
-                pvcpBackTeam: "",
-              }
-            : item
-        )
-      )
-    }
-    className={
-      row.pvcpEnabled
-        ? "rounded-lg bg-red-500 px-3 py-1 text-xs font-black text-white"
-        : "rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-xs font-bold text-zinc-400 hover:bg-white/10"
-    }
-  >
-    {row.pvcpEnabled ? "PVCP ATTIVO" : "+ CASO PVCP"}
-  </button>
-) : null}
+      <button
+        type="button"
+        onClick={() =>
+          setRows((prev) =>
+            prev.map((item) =>
+              item.posizione === row.posizione
+                ? {
+                    ...item,
+                    pvcpEnabled: !item.pvcpEnabled,
+                    pvcpCrashLap: "",
+                    pvcpRacePosition: "",
+                    pvcpFrontTeam: "",
+                    pvcpBackTeam: "",
+                  }
+                : item
+            )
+          )
+        }
+        className={
+          row.pvcpEnabled
+            ? "rounded-lg bg-red-500 px-3 py-1 text-xs font-black text-white"
+            : "rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-xs font-bold text-zinc-400 hover:bg-white/10"
+        }
+      >
+        {row.pvcpEnabled ? "PVCP ATTIVO" : "+ CASO PVCP"}
+      </button>
+    ) : null}
 
-    {!row.lapsDown && !row.pvcpEnabled ? (
-      <span className="text-xs text-zinc-600">Nessun intervento</span>
+    <button
+      type="button"
+      onClick={() =>
+        setRows((prev) =>
+          prev.map((item) =>
+            item.posizione === row.posizione
+              ? {
+                  ...item,
+                  manualPenaltyEnabled: !item.manualPenaltyEnabled,
+                  manualPenaltySeconds: item.manualPenaltyEnabled
+                    ? ""
+                    : item.manualPenaltySeconds || "",
+                }
+              : item
+          )
+        )
+      }
+      className={
+        row.manualPenaltyEnabled
+          ? "rounded-lg bg-orange-500 px-3 py-1 text-xs font-black text-black"
+          : "rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-xs font-bold text-zinc-400 hover:bg-white/10"
+      }
+    >
+      {row.manualPenaltyEnabled
+        ? "PENALITÀ ATTIVA"
+        : "+ PENALITÀ"}
+    </button>
+
+    {!row.lapsDown &&
+    !row.pvcpEnabled &&
+    !row.manualPenaltyEnabled ? (
+      <span className="text-xs text-zinc-600">
+        Nessun intervento
+      </span>
     ) : null}
   </div>
 </td>
 
 <td className="border-b border-white/5 p-2">
+  {row.manualPenaltyEnabled ? (
+    <div className="mb-3 min-w-[180px]">
+      <label className="mb-1 block text-xs font-bold text-orange-300">
+        Penalità manuale
+      </label>
+
+      <div className="flex items-center gap-2">
+        <input
+          type="number"
+          min="0"
+          step="0.1"
+          placeholder="Secondi"
+          value={row.manualPenaltySeconds || ""}
+          onChange={(e) =>
+            updateResult(
+              row.posizione,
+              "manualPenaltySeconds",
+              e.target.value
+            )
+          }
+          className="w-24 rounded-lg border border-orange-400/30 bg-black/40 px-2 py-1 font-mono"
+        />
+
+        <span className="text-sm text-zinc-400">s</span>
+      </div>
+    </div>
+  ) : null}
+
   {row.lapsDown ? (
     <LappedTimeInput
       value={row.manualTime}
