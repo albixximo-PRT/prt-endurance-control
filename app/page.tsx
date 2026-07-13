@@ -546,6 +546,34 @@ function findPilotMatch(pilotName: string) {
   )
 }
 
+function confirmPilotAlias(
+  posizione: number,
+  teamNumber: string
+) {
+  const team = teams.find(
+    (item) => item.numeroTeam === teamNumber
+  )
+
+  if (!team) return
+
+  const officialPilot = getPilotForSelectedLobby(team)
+
+  setRows((prev) =>
+    prev.map((row) =>
+      row.posizione === posizione
+        ? {
+            ...row,
+            teamNumber: team.numeroTeam,
+            matchedPilot: officialPilot,
+            matchStatus: "safe",
+            matchScore: 1,
+            aliasConfirmed: true,
+          }
+        : row
+    )
+  )
+}
+
 const rowsWithCalculatedGap = useMemo<ExtractedRow[]>(() => {
   const winner = rows.find((row) => row.posizione === 1)
 
@@ -936,14 +964,129 @@ setDebugText(
                   </td>
 
                   <td className="border-b border-white/5 p-2">
-                    <input
-                      value={row.pilota}
-                      onChange={(e) =>
-                        updateResult(row.posizione, "pilota", e.target.value)
-                      }
-                      className="w-full rounded-lg bg-black/40 border border-white/10 px-2 py-1"
-                    />
-                  </td>
+  <input
+    value={row.pilota}
+    onChange={(e) =>
+      updateResult(row.posizione, "pilota", e.target.value)
+    }
+    className="w-full rounded-lg bg-black/40 border border-white/10 px-2 py-1"
+  />
+
+  {row.matchStatus === "safe" ? (
+    <div className="mt-2 text-xs font-bold text-emerald-300">
+      ✓ Associato a {row.matchedPilot}
+    </div>
+  ) : null}
+
+  {row.matchStatus === "warning" ? (
+  <div className="mt-2 rounded-lg border border-yellow-400/30 bg-yellow-400/10 p-2 text-xs text-yellow-200">
+    <div className="font-black">
+      ⚠ Alias da confermare
+    </div>
+
+    <div className="mt-1">
+      Nome letto OCR:{" "}
+      <span className="font-black">{row.pilota}</span>
+    </div>
+
+    <div className="mt-1">
+      Migliore candidato:{" "}
+      <span className="font-black">
+        {row.matchedPilot || "Nessun candidato"}
+      </span>
+    </div>
+
+    <select
+      value=""
+      onChange={(e) => {
+        if (!e.target.value) return
+
+        confirmPilotAlias(
+          row.posizione,
+          e.target.value
+        )
+      }}
+      className="mt-2 w-full rounded-lg border border-yellow-400/30 bg-zinc-900 px-2 py-2 text-white"
+    >
+      <option value="">
+        Seleziona il pilota corretto
+      </option>
+
+      {teams
+        .map((team) => {
+          const pilot = getPilotForSelectedLobby(team)
+
+          return {
+            teamNumber: team.numeroTeam,
+            teamName: team.nomeTeam,
+            pilot,
+          }
+        })
+        .filter((item) => item.pilot)
+        .map((item) => (
+          <option
+            key={`alias-${row.posizione}-${item.teamNumber}`}
+            value={item.teamNumber}
+          >
+            Team {item.teamNumber} — {item.pilot}
+            {item.teamName ? ` — ${item.teamName}` : ""}
+          </option>
+        ))}
+    </select>
+  </div>
+) : null}
+
+  {row.matchStatus === "missing" ? (
+  <div className="mt-2 rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-xs text-red-200">
+    <div className="font-black">
+      ⚠ Nessun pilota associato
+    </div>
+
+    <div className="mt-1">
+      Nome letto OCR:{" "}
+      <span className="font-black">{row.pilota}</span>
+    </div>
+
+    <select
+      value=""
+      onChange={(e) => {
+        if (!e.target.value) return
+
+        confirmPilotAlias(
+          row.posizione,
+          e.target.value
+        )
+      }}
+      className="mt-2 w-full rounded-lg border border-red-500/30 bg-zinc-900 px-2 py-2 text-white"
+    >
+      <option value="">
+        Indica manualmente chi è
+      </option>
+
+      {teams
+        .map((team) => {
+          const pilot = getPilotForSelectedLobby(team)
+
+          return {
+            teamNumber: team.numeroTeam,
+            teamName: team.nomeTeam,
+            pilot,
+          }
+        })
+        .filter((item) => item.pilot)
+        .map((item) => (
+          <option
+            key={`missing-${row.posizione}-${item.teamNumber}`}
+            value={item.teamNumber}
+          >
+            Team {item.teamNumber} — {item.pilot}
+            {item.teamName ? ` — ${item.teamName}` : ""}
+          </option>
+        ))}
+    </select>
+  </div>
+) : null}
+</td>
 
                   <td className="border-b border-white/5 p-2">
                     <input
