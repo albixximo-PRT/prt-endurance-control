@@ -1621,224 +1621,277 @@ setDebugText(
     </p>
   ) : (
     <>
+      {/* TABELLA VISIBILE NEL PROGRAMMA */}
+      <table className="w-full border-collapse text-sm">
+        <thead>
+          <tr className="text-left text-zinc-400">
+            <th className="border-b border-white/10 p-2">
+              Ordine rilascio
+            </th>
+
+            <th className="border-b border-white/10 p-2">
+              Team
+            </th>
+
+            <th className="border-b border-white/10 p-2">
+              Pilota
+            </th>
+
+            <th className="border-b border-white/10 p-2">
+              Pos. arrivo
+            </th>
+
+            <th className="border-b border-white/10 p-2">
+              Rilascio
+            </th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {releaseGrid.map((team, index) => (
+            <tr key={`visible-${team.teamNumber}`}>
+              <td className="border-b border-white/5 p-2 font-mono">
+                {index + 1}
+              </td>
+
+              <td className="border-b border-white/5 p-2 font-mono font-black">
+                {team.teamNumber}
+              </td>
+
+              <td className="border-b border-white/5 p-2">
+                {team.pilot}
+              </td>
+
+              <td className="border-b border-white/5 p-2 font-mono">
+                P{team.position}
+              </td>
+
+              <td className="border-b border-white/5 p-2 font-mono font-black">
+                {team.releaseTime}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {/* LAYOUT NASCOSTO UTILIZZATO SOLO PER IL PNG */}
       <div
-  ref={releaseGridExportRef}
-  className="
-    aspect-video
-    w-[1600px]
-    overflow-hidden
-    rounded-[32px]
-    border border-white/10
-    bg-black
-    text-white
-    shadow-[0_0_80px_rgba(255,215,0,0.08)]
-  "
->
-  <div className="relative overflow-hidden border-b border-white/10 p-8">
-
-    <div
-      className="
-        absolute inset-0
-        bg-[radial-gradient(circle_at_top_left,_rgba(255,215,0,0.18),_transparent_35%),radial-gradient(circle_at_top_right,_rgba(139,92,246,0.18),_transparent_35%)]
-      "
-    />
-
-    <div className="relative flex items-center justify-between gap-6">
-
-      <div>
+        className="pointer-events-none fixed left-[-99999px] top-0"
+        aria-hidden="true"
+      >
         <div
-  className="text-5xl uppercase tracking-[0.08em] text-yellow-300"
-  style={{
-    fontFamily: '"Vampire Wars", sans-serif',
-    textShadow:
-      "0 0 10px rgba(250,204,21,0.65), 0 0 28px rgba(250,204,21,0.3)",
-  }}
->
-  {exportMainTitle}
-</div>
-
-        <div
-  className="mt-2 text-4xl uppercase tracking-[0.12em] text-white"
-  style={{
-    fontFamily: '"Vampire Wars", sans-serif',
-    textShadow:
-      "0 0 10px rgba(255,255,255,0.35), 0 0 24px rgba(168,85,247,0.35)",
-  }}
->
-  {exportEventName}
-</div>
-
-        <div
+          ref={releaseGridExportRef}
           className="
-            mt-5 inline-flex
-            rounded-full
-            border border-white/15
-            bg-white/5
-            px-5 py-2
-            text-lg font-bold
-            backdrop-blur-xl
+            aspect-video
+            w-[1600px]
+            overflow-hidden
+            rounded-[32px]
+            border border-white/10
+            bg-black
+            text-white
+            shadow-[0_0_80px_rgba(255,215,0,0.08)]
           "
         >
-          {exportSubtitle}
+          <div className="relative overflow-hidden border-b border-white/10 p-8">
+            <div
+              className="
+                absolute inset-0
+                bg-[radial-gradient(circle_at_top_left,_rgba(255,215,0,0.18),_transparent_35%),radial-gradient(circle_at_top_right,_rgba(139,92,246,0.18),_transparent_35%)]
+              "
+            />
+
+            <div className="relative flex items-center justify-between gap-6">
+              <div>
+                <div
+                  className="text-5xl uppercase tracking-[0.08em] text-yellow-300"
+                  style={{
+                    fontFamily: '"Vampire Wars", sans-serif',
+                    textShadow:
+                      "0 0 10px rgba(250,204,21,0.65), 0 0 28px rgba(250,204,21,0.3)",
+                  }}
+                >
+                  {exportMainTitle}
+                </div>
+
+                <div
+                  className="mt-2 text-4xl uppercase tracking-[0.12em] text-white"
+                  style={{
+                    fontFamily: '"Vampire Wars", sans-serif',
+                    textShadow:
+                      "0 0 10px rgba(255,255,255,0.35), 0 0 24px rgba(168,85,247,0.35)",
+                  }}
+                >
+                  {exportEventName}
+                </div>
+
+                <div
+                  className="
+                    mt-5 inline-flex
+                    rounded-full
+                    border border-white/15
+                    bg-white/5
+                    px-5 py-2
+                    text-lg font-bold
+                    backdrop-blur-xl
+                  "
+                >
+                  {exportSubtitle}
+                </div>
+              </div>
+
+              <img
+                src="/endurance/endurance-division-logo.png"
+                alt="PRT Endurance Division"
+                className="h-56 w-56 object-contain drop-shadow-[0_0_25px_rgba(250,204,21,0.25)]"
+              />
+            </div>
+          </div>
+
+          <div className="p-6">
+            <table className="w-full border-separate border-spacing-0 text-sm">
+              <thead>
+                <tr className="text-left text-xs font-black uppercase tracking-wider text-zinc-400">
+                  <th className="border-b border-white/10 px-4 py-4">
+                    {selectedLobby === 3 ? "Pos." : "Ordine"}
+                  </th>
+
+                  <th className="border-b border-white/10 px-4 py-4">
+                    Team
+                  </th>
+
+                  <th className="border-b border-white/10 px-4 py-4">
+                    Pilota
+                  </th>
+
+                  <th className="border-b border-white/10 px-4 py-4">
+                    Pos. stint
+                  </th>
+
+                  <th className="border-b border-white/10 px-4 py-4">
+                    Risultato gara
+                  </th>
+
+                  <th className="border-b border-white/10 px-4 py-4">
+                    Direzione Gara
+                  </th>
+
+                  <th className="border-b border-white/10 px-4 py-4 text-right">
+                    {exportTimeLabel}
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {releaseGrid.map((team, index) => {
+                  const isFirst = index === 0
+
+                  return (
+                    <tr
+                      key={`export-${team.teamNumber}`}
+                      className={
+                        isFirst
+                          ? "bg-[linear-gradient(90deg,rgba(234,179,8,0.18),rgba(234,179,8,0.04),transparent)]"
+                          : index % 2 === 0
+                            ? "bg-white/[0.025]"
+                            : "bg-transparent"
+                      }
+                    >
+                      <td className="border-b border-white/[0.07] px-4 py-4">
+                        <div
+                          className={
+                            isFirst
+                              ? "flex h-9 w-9 items-center justify-center rounded-full border border-yellow-300/60 bg-yellow-400/15 font-mono text-base font-black text-yellow-300 shadow-[0_0_20px_rgba(250,204,21,0.25)]"
+                              : "flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/30 font-mono font-bold text-zinc-300"
+                          }
+                        >
+                          {index + 1}
+                        </div>
+                      </td>
+
+                      <td className="border-b border-white/[0.07] px-4 py-4">
+                        <div
+                          className={
+                            isFirst
+                              ? "inline-flex min-w-24 items-center justify-center rounded-xl border border-yellow-300/40 bg-yellow-400/10 px-4 py-2 text-lg font-black text-yellow-200 shadow-[0_0_18px_rgba(250,204,21,0.16)]"
+                              : "inline-flex min-w-24 items-center justify-center rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-lg font-black text-white"
+                          }
+                        >
+                          TEAM {team.teamNumber}
+                        </div>
+                      </td>
+
+                      <td className="border-b border-white/[0.07] px-4 py-4">
+                        <div className="text-base font-black text-white">
+                          {team.pilot}
+                        </div>
+                      </td>
+
+                      <td className="border-b border-white/[0.07] px-4 py-4">
+                        <span className="inline-flex rounded-lg border border-white/10 bg-white/5 px-3 py-1 font-mono font-bold text-zinc-300">
+                          P{team.position}
+                        </span>
+                      </td>
+
+                      <td className="border-b border-white/[0.07] px-4 py-4">
+                        <span className="font-mono text-base font-black text-white">
+                          {team.position === 1
+                            ? team.raceResultTime
+                            : `+${team.raceResultTime}`}
+                        </span>
+                      </td>
+
+                      <td className="border-b border-white/[0.07] px-4 py-4">
+                        <div className="flex flex-wrap items-center gap-2">
+                          {team.hasPenalty ? (
+                            <span className="inline-flex items-center rounded-lg border border-orange-400/40 bg-orange-500/15 px-3 py-2 text-xs font-black text-orange-200 shadow-[0_0_18px_rgba(249,115,22,0.16)]">
+                              +{team.penaltySeconds} sec
+                            </span>
+                          ) : null}
+
+                          {team.isPvcp ? (
+                            <span className="inline-flex items-center rounded-lg border border-fuchsia-400/40 bg-fuchsia-500/15 px-3 py-2 text-xs font-black text-fuchsia-200 shadow-[0_0_18px_rgba(217,70,239,0.18)]">
+                              Crash Protocol
+                              {team.pvcpCrashLap
+                                ? ` Lap[${team.pvcpCrashLap}]`
+                                : ""}
+                              {team.pvcpRacePosition
+                                ? ` - Pos[${team.pvcpRacePosition}]`
+                                : ""}
+                            </span>
+                          ) : null}
+
+                          {!team.hasPenalty && !team.isPvcp ? (
+                            <span className="text-zinc-600">—</span>
+                          ) : null}
+                        </div>
+                      </td>
+
+                      <td className="border-b border-white/[0.07] px-4 py-4 text-right">
+                        <span
+                          className={
+                            isFirst
+                              ? "font-mono text-lg font-black text-yellow-300 drop-shadow-[0_0_10px_rgba(250,204,21,0.45)]"
+                              : "font-mono text-lg font-black text-white"
+                          }
+                        >
+                          {selectedLobby === 3 && index > 0 ? "+" : ""}
+                          {team.releaseTime}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+
+            <div className="flex items-center justify-between border-t border-white/10 px-4 pt-5 text-xs font-bold uppercase tracking-[0.18em] text-zinc-500">
+              <span>Poison Racing Team</span>
+
+              <span>Generated by PRT Endurance Control</span>
+            </div>
+          </div>
         </div>
       </div>
-
-      <img
-        src="/endurance/endurance-division-logo.png"
-        alt="PRT Endurance Division"
-        className="h-56 w-56 object-contain"
-      />
-    </div>
-  </div>
-
-  <div className="p-6">
-    <table className="w-full border-separate border-spacing-0 text-sm">
-  <thead>
-    <tr className="text-left text-xs font-black uppercase tracking-wider text-zinc-400">
-      <th className="border-b border-white/10 px-4 py-4">
-        {selectedLobby === 3 ? "Pos." : "Ordine"}
-      </th>
-
-      <th className="border-b border-white/10 px-4 py-4">
-        Team
-      </th>
-
-      <th className="border-b border-white/10 px-4 py-4">
-        Pilota
-      </th>
-
-      <th className="border-b border-white/10 px-4 py-4">
-  Pos. stint
-</th>
-
-<th className="border-b border-white/10 px-4 py-4">
-  Risultato gara
-</th>
-
-<th className="border-b border-white/10 px-4 py-4">
-  Direzione Gara
-</th>
-
-      <th className="border-b border-white/10 px-4 py-4 text-right">
-        {exportTimeLabel}
-      </th>
-    </tr>
-  </thead>
-
-  <tbody>
-    {releaseGrid.map((team, index) => {
-      const isFirst = index === 0
-
-      return (
-        <tr
-          key={team.teamNumber}
-          className={
-            isFirst
-              ? "bg-[linear-gradient(90deg,rgba(234,179,8,0.18),rgba(234,179,8,0.04),transparent)]"
-              : index % 2 === 0
-                ? "bg-white/[0.025]"
-                : "bg-transparent"
-          }
-        >
-          <td className="border-b border-white/[0.07] px-4 py-4">
-            <div
-              className={
-                isFirst
-                  ? "flex h-9 w-9 items-center justify-center rounded-full border border-yellow-300/60 bg-yellow-400/15 font-mono text-base font-black text-yellow-300 shadow-[0_0_20px_rgba(250,204,21,0.25)]"
-                  : "flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/30 font-mono font-bold text-zinc-300"
-              }
-            >
-              {index + 1}
-            </div>
-          </td>
-
-          <td className="border-b border-white/[0.07] px-4 py-4">
-            <div
-              className={
-                isFirst
-                  ? "inline-flex min-w-24 items-center justify-center rounded-xl border border-yellow-300/40 bg-yellow-400/10 px-4 py-2 text-lg font-black text-yellow-200 shadow-[0_0_18px_rgba(250,204,21,0.16)]"
-                  : "inline-flex min-w-24 items-center justify-center rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-lg font-black text-white"
-              }
-            >
-              TEAM {team.teamNumber}
-            </div>
-          </td>
-
-          <td className="border-b border-white/[0.07] px-4 py-4">
-            <div className="text-base font-black text-white">
-              {team.pilot}
-            </div>
-          </td>
-
-          <td className="border-b border-white/[0.07] px-4 py-4">
-  <span className="inline-flex rounded-lg border border-white/10 bg-white/5 px-3 py-1 font-mono font-bold text-zinc-300">
-    P{team.position}
-  </span>
-</td>
-
-<td className="border-b border-white/[0.07] px-4 py-4">
-  <span className="font-mono text-base font-black text-white">
-    {team.position === 1 && selectedLobby === 3
-      ? team.raceResultTime
-      : team.position === 1
-        ? team.raceResultTime
-        : `+${team.raceResultTime}`}
-  </span>
-</td>
-
-<td className="border-b border-white/[0.07] px-4 py-4">
-            <div className="flex flex-wrap items-center gap-2">
-              {team.hasPenalty ? (
-                <span className="inline-flex items-center rounded-lg border border-orange-400/40 bg-orange-500/15 px-3 py-2 font-mono text-xs font-black text-orange-200 shadow-[0_0_18px_rgba(249,115,22,0.16)]">
-                  PENALITÀ +{team.penaltySeconds} sec
-                </span>
-              ) : null}
-
-              {team.isPvcp ? (
-                <span className="inline-flex items-center rounded-lg border border-fuchsia-400/40 bg-fuchsia-500/15 px-3 py-2 text-xs font-black text-fuchsia-200 shadow-[0_0_18px_rgba(217,70,239,0.18)]">
-                  Crash Protocol
-{team.pvcpCrashLap
-  ? ` Lap[${team.pvcpCrashLap}]`
-  : ""}
-
-{team.pvcpRacePosition
-  ? ` - Pos[${team.pvcpRacePosition}]`
-  : ""}
-                </span>
-              ) : null}
-
-              {!team.hasPenalty && !team.isPvcp ? (
-                <span className="text-zinc-600">—</span>
-              ) : null}
-            </div>
-          </td>
-
-          <td className="border-b border-white/[0.07] px-4 py-4 text-right">
-            <span
-              className={
-                isFirst
-                  ? "font-mono text-lg font-black text-yellow-300 drop-shadow-[0_0_10px_rgba(250,204,21,0.45)]"
-                  : "font-mono text-lg font-black text-white"
-              }
-            >
-              {selectedLobby === 3 && index > 0 ? "+" : ""}
-              {team.releaseTime}
-            </span>
-          </td>
-        </tr>
-      )
-    })}
-  </tbody>
-</table>
-<div className="flex items-center justify-between border-t border-white/10 px-4 pt-5 text-xs font-bold uppercase tracking-[0.18em] text-zinc-500">
-  <span>Poison Racing Team</span>
-
-  <span>
-    Generated by PRT Endurance Control
-  </span>
-</div>
-  </div>
-</div>
 
       <button
         type="button"
