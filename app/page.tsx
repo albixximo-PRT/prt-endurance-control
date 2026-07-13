@@ -726,7 +726,7 @@ const rowsWithCalculatedGap = useMemo<ExtractedRow[]>(() => {
       pvcpCalculatedGap,
     }
   })
-}, [rows, lappedCorrectionSeconds])
+}, [rows, missingRows, lappedCorrectionSeconds])
 
 const hasUnconfirmedAliases = rows.some(
   (row) =>
