@@ -858,6 +858,26 @@ return sortedRows.map((row) => ({
 }))
 }, [rowsWithCalculatedGap, teams])
 
+const maxPenaltyChars = Math.max(
+  0,
+  ...releaseGrid
+    .filter((team) => team.hasPenalty)
+    .map(
+      (team) =>
+        `Penalty • +${team.penaltySeconds} sec`.length
+    )
+)
+
+const maxPvcpChars = Math.max(
+  0,
+  ...releaseGrid
+    .filter((team) => team.isPvcp)
+    .map(
+      (team) =>
+        `Crash Protocol • Lap ${team.pvcpCrashLap} • Pos ${team.pvcpRacePosition}`.length
+    )
+)
+
 const exportMainTitle =
   "PRT Endurance Challenge"
 
@@ -1707,82 +1727,83 @@ w-[1600px]
   />
 
   <div className="relative flex h-full items-center justify-between gap-8">
-    <div className="min-w-0 flex-1">
+  <div className="min-w-0 flex-1">
+    <div className="flex h-full items-center gap-8">
+      <img
+        src="/endurance/3h.png"
+        alt={exportEventName}
+        className="
+          h-[305px]
+          w-auto
+          shrink-0
+          object-contain
+          drop-shadow-[0_0_18px_rgba(250,204,21,0.20)]
+        "
+      />
+
       <div
-        className="text-3xl uppercase tracking-[0.08em] text-yellow-300"
-        style={{
-          fontFamily: '"Vampire Wars", sans-serif',
-          textShadow:
-            "0 0 10px rgba(250,204,21,0.75), 0 0 30px rgba(250,204,21,0.35)",
-        }}
-      >
-        {exportMainTitle}
-      </div>
+  className="
+    relative
+    mt-12
+    inline-flex
+    min-w-0
+    items-center
+    gap-3
+    overflow-hidden
+    rounded-2xl
+    border border-fuchsia-400/35
+    bg-[linear-gradient(135deg,rgba(15,15,20,0.94),rgba(55,20,65,0.80),rgba(20,20,25,0.94))]
+    px-8
+    py-4
+    text-[17px]
+    font-black
+    uppercase
+    tracking-[0.045em]
+    shadow-[0_0_22px_rgba(217,70,239,0.20),0_0_34px_rgba(250,204,21,0.10)]
+  "
+>
+  <div
+    className="
+      absolute inset-x-10 top-0 h-px
+      bg-gradient-to-r
+      from-transparent
+      via-yellow-300/70
+      to-transparent
+    "
+  />
 
-      <div className="mt-4 flex items-center gap-7">
-        <div
-          className="shrink-0 text-4xl uppercase tracking-[0.12em] text-white"
-          style={{
-            fontFamily: '"Vampire Wars", sans-serif',
-            textShadow:
-              "0 0 10px rgba(255,255,255,0.35), 0 0 24px rgba(168,85,247,0.35)",
-          }}
-        >
-          {exportEventName}
-        </div>
+  <div
+    className="
+      absolute bottom-0 left-8 right-8 h-px
+      bg-gradient-to-r
+      from-transparent
+      via-fuchsia-400/45
+      to-transparent
+    "
+  />
 
-        <div
-          className="
-            relative
-            inline-flex
-            min-w-0
-            items-center
-            gap-3
-            overflow-hidden
-            rounded-xl
-            border border-fuchsia-400/50
-            bg-[linear-gradient(90deg,rgba(217,70,239,0.16),rgba(250,204,21,0.10),rgba(217,70,239,0.12))]
-            px-6 py-3
-            text-[17px]
-            font-black
-            uppercase
-            tracking-[0.04em]
-            shadow-[0_0_18px_rgba(217,70,239,0.22),0_0_28px_rgba(250,204,21,0.12)]
-          "
-        >
-          <div
-            className="
-              absolute inset-x-8 top-0 h-px
-              bg-gradient-to-r
-              from-transparent
-              via-yellow-300/80
-              to-transparent
-            "
-          />
+  <span className="whitespace-nowrap text-white">
+    {exportSubtitlePrefix}
+  </span>
 
-          <span className="whitespace-nowrap text-white">
-            {exportSubtitlePrefix}
-          </span>
-
-          <span
-            className="whitespace-nowrap text-yellow-300"
-            style={{
-              textShadow:
-                "0 0 8px rgba(250,204,21,0.9), 0 0 18px rgba(250,204,21,0.45)",
-            }}
-          >
-            {exportStintLabel}
-          </span>
-        </div>
-      </div>
+  <span
+    className="whitespace-nowrap text-yellow-300"
+    style={{
+      textShadow:
+        "0 0 8px rgba(250,204,21,0.85), 0 0 18px rgba(250,204,21,0.38)",
+    }}
+  >
+    {exportStintLabel}
+  </span>
+</div>
     </div>
-
+  </div>
     <img
-      src="/endurance/endurance-division-logo.png"
+      src="/endurance/endurance-division-trasparente.png"
       alt="PRT Endurance Division"
       className="
-        h-32
-        w-32
+        h-40
+        w-40
         shrink-0
         object-contain
         mix-blend-screen
@@ -1808,8 +1829,8 @@ w-[1600px]
                     Pilota
                   </th>
 
-                  <th className="w-[17%] border-b border-white/10 px-4 py-1">
-                    Risultato gara
+                  <th className="w-[18%] border-b border-white/10 px-4 py-1">
+                    Distacchi gara
                   </th>
 
                   <th className="w-[25%] border-b border-white/10 px-4 py-1">
@@ -1825,25 +1846,35 @@ w-[1600px]
               <tbody>
                 {releaseGrid.map((team, index) => {
                   const isFirst = index === 0
+                  const isSecond = index === 1
+const isThird = index === 2
 
                   return (
                     <tr
                       key={`export-${team.teamNumber}`}
                       className={`h-[46px] ${
-                        isFirst
-                          ? "bg-[linear-gradient(90deg,rgba(234,179,8,0.18),rgba(234,179,8,0.04),transparent)]"
-                          : index % 2 === 0
-                            ? "bg-white/[0.025]"
-                            : "bg-transparent"
-                      }`}
+  isFirst
+    ? "bg-[linear-gradient(90deg,rgba(234,179,8,0.18),rgba(234,179,8,0.04),transparent)]"
+    : isSecond
+      ? "bg-[linear-gradient(90deg,rgba(203,213,225,0.13),rgba(203,213,225,0.035),transparent)]"
+      : isThird
+        ? "bg-[linear-gradient(90deg,rgba(180,83,9,0.14),rgba(180,83,9,0.035),transparent)]"
+        : index % 2 === 0
+          ? "bg-white/[0.025]"
+          : "bg-transparent"
+}`}
                     >
                       <td className="border-b border-white/[0.07] px-4 py-0">
                         <div
                           className={
-                            isFirst
-                              ? "flex h-7 w-7 items-center justify-center rounded-full border border-yellow-300/60 bg-yellow-400/15 font-mono text-[12px] font-black text-yellow-300 shadow-[0_0_14px_rgba(250,204,21,0.22)]"
-                              : "flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-black/30 font-mono text-[12px] font-bold text-zinc-300"
-                          }
+  isFirst
+    ? "flex h-7 w-7 items-center justify-center rounded-full border border-yellow-300/60 bg-yellow-400/15 font-mono text-[12px] font-black text-yellow-300 shadow-[0_0_14px_rgba(250,204,21,0.22)]"
+    : isSecond
+      ? "flex h-7 w-7 items-center justify-center rounded-full border border-slate-300/50 bg-slate-300/10 font-mono text-[12px] font-black text-slate-200 shadow-[0_0_12px_rgba(203,213,225,0.16)]"
+      : isThird
+        ? "flex h-7 w-7 items-center justify-center rounded-full border border-amber-700/60 bg-amber-700/12 font-mono text-[12px] font-black text-amber-500 shadow-[0_0_12px_rgba(180,83,9,0.16)]"
+        : "flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-black/30 font-mono text-[12px] font-bold text-zinc-300"
+}
                         >
                           {index + 1}
                         </div>
@@ -1852,23 +1883,27 @@ w-[1600px]
                       <td className="border-b border-white/[0.07] px-4 py-0">
                         <div
                           className={
-                            isFirst
-                              ? "inline-flex min-w-20 items-center justify-center whitespace-nowrap rounded-lg border border-yellow-300/40 bg-yellow-400/10 px-3 py-1.5 text-[14px] font-black text-yellow-200 shadow-[0_0_14px_rgba(250,204,21,0.14)]"
-                              : "inline-flex min-w-20 items-center justify-center whitespace-nowrap rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[14px] font-black text-white"
-                          }
+  isFirst
+    ? "inline-flex min-w-20 items-center justify-center whitespace-nowrap rounded-lg border border-yellow-300/40 bg-yellow-400/10 px-3 py-1.5 text-[14px] font-black text-yellow-200 shadow-[0_0_14px_rgba(250,204,21,0.14)]"
+    : isSecond
+      ? "inline-flex min-w-20 items-center justify-center whitespace-nowrap rounded-lg border border-slate-300/35 bg-slate-300/10 px-3 py-1.5 text-[14px] font-black text-slate-100 shadow-[0_0_12px_rgba(203,213,225,0.12)]"
+      : isThird
+        ? "inline-flex min-w-20 items-center justify-center whitespace-nowrap rounded-lg border border-amber-700/45 bg-amber-700/10 px-3 py-1.5 text-[14px] font-black text-amber-300 shadow-[0_0_12px_rgba(180,83,9,0.12)]"
+        : "inline-flex min-w-20 items-center justify-center whitespace-nowrap rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[14px] font-black text-white"
+}
                         >
                           TEAM {team.teamNumber}
                         </div>
                       </td>
 
                       <td className="border-b border-white/[0.07] px-4 py-0">
-                        <div className="truncate text-[14px] font-black text-white">
+                        <div className="truncate text-[17px] font-black text-white">
                           {team.pilot}
                         </div>
                       </td>
 
                       <td className="border-b border-white/[0.07] px-4 py-0">
-                        <span className="whitespace-nowrap font-mono text-[14px] font-black text-white">
+                        <span className="whitespace-nowrap font-mono text-[16px] font-black text-white">
                           {team.position === 1
                             ? team.raceResultTime
                             : `+${team.raceResultTime}`}
@@ -1878,21 +1913,31 @@ w-[1600px]
                       <td className="border-b border-white/[0.07] px-4 py-0">
                         <div className="flex flex-nowrap items-center gap-2">
                           {team.hasPenalty ? (
-                            <span className="inline-flex whitespace-nowrap rounded-md border border-orange-400/40 bg-orange-500/15 px-2 py-1 text-[11px] font-black text-orange-200 shadow-[0_0_12px_rgba(249,115,22,0.14)]">
-                              +{team.penaltySeconds} sec
-                            </span>
+                            <span
+  className="inline-flex items-center justify-start whitespace-nowrap rounded-lg border border-orange-400/40 bg-orange-500/15 px-3 py-1.5 text-[14px] font-black text-orange-200 shadow-[0_0_12px_rgba(249,115,22,0.14)]"
+  style={{
+    width: `${maxPenaltyChars + 3}ch`,
+  }}
+>
+  Penalty{" "}
+  <span className="mx-3 text-amber-300">•</span>
+  {" "}
+  +{team.penaltySeconds} sec
+</span>
                           ) : null}
 
                           {team.isPvcp ? (
-                            <span className="inline-flex whitespace-nowrap rounded-md border border-fuchsia-400/40 bg-fuchsia-500/15 px-2 py-1 text-[11px] font-black text-fuchsia-200 shadow-[0_0_12px_rgba(217,70,239,0.14)]">
-                              Crash Protocol
-                              {team.pvcpCrashLap
-                                ? ` Lap[${team.pvcpCrashLap}]`
-                                : ""}
-                              {team.pvcpRacePosition
-                                ? ` - Pos[${team.pvcpRacePosition}]`
-                                : ""}
-                            </span>
+                            <span
+  className="inline-flex items-center justify-start whitespace-nowrap rounded-lg border border-fuchsia-400/40 bg-fuchsia-500/15 px-3 py-1.5 text-[14px] font-black text-fuchsia-200 shadow-[0_0_12px_rgba(217,70,239,0.14)]"
+  style={{
+    width: `${maxPvcpChars + 3}ch`,
+  }}
+>
+  Crash Protocol{" "}
+  <span className="mx-3 text-fuchsia-300">•</span>
+  {" "}
+  Lap {team.pvcpCrashLap} • Pos {team.pvcpRacePosition}
+</span>
                           ) : null}
 
                           {!team.hasPenalty && !team.isPvcp ? (
@@ -1905,8 +1950,8 @@ w-[1600px]
                         <span
                           className={
                             isFirst
-                              ? "whitespace-nowrap font-mono text-[14px] font-black text-yellow-300 drop-shadow-[0_0_8px_rgba(250,204,21,0.4)]"
-                              : "whitespace-nowrap font-mono text-[14px] font-black text-white"
+                              ? "whitespace-nowrap font-mono text-[17px] font-black text-yellow-300 drop-shadow-[0_0_8px_rgba(250,204,21,0.4)]"
+                              : "whitespace-nowrap font-mono text-[17px] font-black text-white"
                           }
                         >
                           {selectedLobby === 3 && index > 0 ? "+" : ""}
@@ -1920,29 +1965,39 @@ w-[1600px]
             </table>
 
             <div className="flex h-[38px] items-end justify-between px-4 pb-1 text-[9px] font-bold uppercase tracking-[0.14em] text-zinc-500">
-  <span>Poison Racing Team</span>
+  <div className="flex translate-y-5 items-center gap-3">
+    <img
+      src="/endurance/twitch.png"
+      alt="Twitch"
+      className="h-[46px] w-auto object-contain opacity-90"
+    />
 
-  <div className="flex flex-col items-end gap-1 text-right">
-    <span>
-      Generated with{" "}
-      <span className="text-yellow-300">
-        PRT Endurance Control
-      </span>
-    </span>
-
-    <span>
-      Powered by{" "}
-      <span
-        className="text-yellow-300"
-        style={{
-          textShadow:
-            "0 0 8px rgba(250,204,21,0.45)",
-        }}
-      >
-        Albixximo
-      </span>
+    <span className="text-[11px] tracking-[0.14em] text-fuchsia-300/80">
+      twitch.tv/xsamuelx_channel
     </span>
   </div>
+
+  <div className="flex translate-y-4 flex-col items-end gap-1 text-right">
+  <span className="text-[11px]">
+    Generated with{" "}
+    <span className="text-yellow-300">
+      PRT Endurance Control
+    </span>
+  </span>
+
+  <span className="text-[11px]">
+    Powered by{" "}
+    <span
+      className="text-yellow-300"
+      style={{
+        textShadow:
+          "0 0 8px rgba(250,204,21,0.45)",
+      }}
+    >
+      Albixximo
+    </span>
+  </span>
+</div>
 </div>
           </div>
         </div>
