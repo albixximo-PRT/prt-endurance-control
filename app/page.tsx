@@ -1967,7 +1967,7 @@ const isThird = index === 2
             <div className="flex h-[38px] items-end justify-between px-4 pb-1 text-[9px] font-bold uppercase tracking-[0.14em] text-zinc-500">
   <div className="flex translate-y-5 items-center gap-3">
     <img
-  src="/endurance/xsamuelx-logo.png"
+  src="/endurance/xsamuelx-logo.jpeg"
   alt="xSamueLx"
   className="h-[16px] w-auto object-contain opacity-90"
 />
