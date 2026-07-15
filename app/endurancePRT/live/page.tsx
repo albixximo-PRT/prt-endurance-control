@@ -23,6 +23,8 @@ export default function EnduranceLivePage() {
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null)
   const tickPlayerRef = useRef<HTMLAudioElement | null>(null)
 const lastTickSecondRef = useRef<number | null>(null)
+const tickSequenceStartedRef = useRef(false)
+const voiceWasPlayingRef = useRef(false)
 
 const audioQueueRef = useRef<
   Array<{
@@ -270,15 +272,50 @@ const localTimerMs = timerSyncRef.current
 const timeToNextGo = nextReleaseMs - localTimerMs
 
 useEffect(() => {
+  const tickPlayer = tickPlayerRef.current
+
   if (!audioEnabled || !state?.running || isGo || timeToNextGo <= 0) {
     lastTickSecondRef.current = null
+    tickSequenceStartedRef.current = false
+    voiceWasPlayingRef.current = false
+
+    if (tickPlayer) {
+      tickPlayer.pause()
+      tickPlayer.currentTime = 0
+    }
+
     return
   }
 
   const currentSecond = Math.floor(timeToNextGo / 1000)
+  const voiceIsPlaying = isAudioPlayingRef.current
 
-  // Se sta parlando la voce del Team, saltiamo il beep
-  if (isAudioPlayingRef.current) {
+  // Alla prima attivazione memorizziamo il secondo,
+  // ma aspettiamo il prossimo cambio prima di fare beep.
+  if (!tickSequenceStartedRef.current) {
+    tickSequenceStartedRef.current = true
+    lastTickSecondRef.current = currentSecond
+    return
+  }
+
+  // Durante la voce fermiamo qualsiasi tick ancora in corso
+  // e consideriamo già trascorso il secondo corrente.
+  if (voiceIsPlaying) {
+    voiceWasPlayingRef.current = true
+    lastTickSecondRef.current = currentSecond
+
+    if (tickPlayer) {
+      tickPlayer.pause()
+      tickPlayer.currentTime = 0
+    }
+
+    return
+  }
+
+  // Subito dopo la voce non facciamo partire un beep recuperato:
+  // aspettiamo il prossimo cambio di secondo.
+  if (voiceWasPlayingRef.current) {
+    voiceWasPlayingRef.current = false
     lastTickSecondRef.current = currentSecond
     return
   }
@@ -287,12 +324,9 @@ useEffect(() => {
 
   lastTickSecondRef.current = currentSecond
 
-  const tickPlayer = tickPlayerRef.current
-
   if (!tickPlayer) return
 
   tickPlayer.currentTime = 0
-
   tickPlayer.play().catch(() => {})
 }, [audioEnabled, state?.running, isGo, timeToNextGo])
 
