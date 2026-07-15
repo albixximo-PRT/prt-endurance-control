@@ -20,7 +20,6 @@ export default function EnduranceLivePage() {
   const [showSplash, setShowSplash] = useState(true)
   const [localNow, setLocalNow] = useState(Date.now())
   const lastAudioIdRef = useRef<string | null>(null)
-  const currentAudioRef = useRef<HTMLAudioElement | null>(null)
   const timerSyncRef = useRef<{
   timerMs: number
   receivedAt: number
@@ -101,71 +100,18 @@ useEffect(() => {
 }, [audioEnabled])
 
   useEffect(() => {
-  if (!audioEnabled) return
-  if (!state?.audioEvent) return
-  if (lastAudioIdRef.current === state.audioEvent.id) return
+    if (!audioEnabled) return
+    if (!state?.audioEvent) return
+    if (lastAudioIdRef.current === state.audioEvent.id) return
 
-  lastAudioIdRef.current = state.audioEvent.id
+    lastAudioIdRef.current = state.audioEvent.id
 
-  const previousAudio = currentAudioRef.current
+    const audio = new Audio(state.audioEvent.src)
+audio.volume = state.audioEvent.volume ?? 1
+audio.play().catch(() => {})
+  }, [audioEnabled, state?.audioEvent])
 
-  if (previousAudio) {
-    previousAudio.pause()
-    previousAudio.currentTime = 0
-  }
-
-  const audio = new Audio(state.audioEvent.src)
-  audio.volume = state.audioEvent.volume ?? 1
-
-  currentAudioRef.current = audio
-
-  audio.onended = () => {
-    if (currentAudioRef.current === audio) {
-      currentAudioRef.current = null
-    }
-  }
-
-  audio.onerror = () => {
-    if (currentAudioRef.current === audio) {
-      currentAudioRef.current = null
-    }
-  }
-
-  audio.play().catch(() => {
-    if (currentAudioRef.current === audio) {
-      currentAudioRef.current = null
-    }
-  })
-}, [audioEnabled, state?.audioEvent])
-
-  useEffect(() => {
-  if (state?.running) return
-  if (state?.status !== "READY") return
-
-  const currentAudio = currentAudioRef.current
-
-  if (currentAudio) {
-    currentAudio.pause()
-    currentAudio.currentTime = 0
-    currentAudioRef.current = null
-  }
-
-  lastAudioIdRef.current = state?.audioEvent?.id ?? null
-}, [state?.running, state?.status, state?.audioEvent?.id])
-
-useEffect(() => {
-  return () => {
-    const currentAudio = currentAudioRef.current
-
-    if (currentAudio) {
-      currentAudio.pause()
-      currentAudio.currentTime = 0
-      currentAudioRef.current = null
-    }
-  }
-}, [])
-
-const shownTeam =
+  const shownTeam =
   state?.activeTeam?.teamNumber ||
   state?.nextTeam?.teamNumber ||
   "--"
