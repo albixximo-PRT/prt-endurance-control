@@ -20,6 +20,10 @@ export default function EnduranceLivePage() {
   const [showSplash, setShowSplash] = useState(true)
   const [localNow, setLocalNow] = useState(Date.now())
   const lastAudioIdRef = useRef<string | null>(null)
+  const timerSyncRef = useRef<{
+  timerMs: number
+  receivedAt: number
+} | null>(null)
   const wakeLockRef = useRef<any>(null)
 
 async function requestWakeLock() {
@@ -47,16 +51,31 @@ useEffect(() => {
 }, [])
 
 useEffect(() => {
-    const interval = window.setInterval(async () => {
-      try {
-        const res = await fetch("/api/endurance-live", { cache: "no-store" })
-        const data = await res.json()
-        setState(data.state ?? null)
-      } catch {}
-    }, 350)
+  const interval = window.setInterval(async () => {
+    try {
+      const res = await fetch("/api/endurance-live", { cache: "no-store" })
+      const data = await res.json()
+      const nextState = data.state ?? null
 
-    return () => window.clearInterval(interval)
-  }, [])
+      setState(nextState)
+
+      if (nextState?.running) {
+        const currentSync = timerSyncRef.current
+
+        if (!currentSync) {
+          timerSyncRef.current = {
+            timerMs: nextState.timerMs ?? 0,
+            receivedAt: Date.now(),
+          }
+        }
+      } else {
+        timerSyncRef.current = null
+      }
+    } catch {}
+  }, 350)
+
+  return () => window.clearInterval(interval)
+}, [])
 
   useEffect(() => {
   if (!audioEnabled) return
@@ -115,15 +134,12 @@ const nextReleaseMs = mmssMatch
     ? Number(ssMatch[1]) * 1000 + Number(ssMatch[2])
     : 0
 
-const elapsedSinceUpdate =
-  state?.running && state?.updatedAt
-    ? Math.max(0, localNow - state.updatedAt)
-    : 0
+const localTimerMs = timerSyncRef.current
+  ? timerSyncRef.current.timerMs +
+    Math.max(0, localNow - timerSyncRef.current.receivedAt)
+  : state?.timerMs ?? 0
 
-const estimatedTimerMs =
-  (state?.timerMs ?? 0) + elapsedSinceUpdate
-
-const timeToNextGo = nextReleaseMs - estimatedTimerMs
+const timeToNextGo = nextReleaseMs - localTimerMs
 
   if (showSplash) {
   return (
@@ -270,23 +286,21 @@ if (
   <div
   className={`mt-2 text-4xl font-black leading-none ${
     isGo
-      ? "text-white"
+      ? "text-emerald-400"
       : timeToNextGo > 6000
         ? "text-white"
         : timeToNextGo > 3000
           ? "text-red-500"
-          : timeToNextGo > 1000
-            ? "text-orange-400"
-            : "text-transparent"
+          : "text-orange-400"
   }`}
 >
   {isGo
     ? "START"
-    : timeToNextGo > 1000
-  ? `${Math.floor(timeToNextGo / 1000)}.${String(
-      Math.floor(timeToNextGo % 1000)
-    ).padStart(3, "0")}`
-  : ""}
+    : timeToNextGo > 0
+      ? `${Math.floor(timeToNextGo / 1000)}.${String(
+          Math.floor(timeToNextGo % 1000)
+        ).padStart(3, "0")}`
+      : ""}
 </div>
 </footer>
       </div>
