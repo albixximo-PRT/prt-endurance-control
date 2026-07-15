@@ -19,6 +19,7 @@ export default function EnduranceLivePage() {
   const [audioEnabled, setAudioEnabled] = useState(false)
   const [showSplash, setShowSplash] = useState(true)
   const [localNow, setLocalNow] = useState(Date.now())
+  const [releaseCompleted, setReleaseCompleted] = useState(false)
   const lastAudioIdRef = useRef<string | null>(null)
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null)
   const tickPlayerRef = useRef<HTMLAudioElement | null>(null)
@@ -35,6 +36,7 @@ const audioQueueRef = useRef<
 >([])
 
 const isAudioPlayingRef = useRef(false)
+const currentAudioSrcRef = useRef<string | null>(null)
   const timerSyncRef = useRef<{
   timerMs: number
   receivedAt: number
@@ -61,9 +63,11 @@ function playNextQueuedAudio() {
 
   isAudioPlayingRef.current = true
 
-  player.src = nextAudio.src
-  player.volume = nextAudio.volume ?? 1
-  player.load()
+  currentAudioSrcRef.current = nextAudio.src
+
+player.src = nextAudio.src
+player.volume = nextAudio.volume ?? 1
+player.load()
 
   player.play().catch(() => {
     isAudioPlayingRef.current = false
@@ -80,9 +84,14 @@ player.setAttribute("playsinline", "true")
 ;(player as any).playsInline = true
 
   player.addEventListener("ended", () => {
-    isAudioPlayingRef.current = false
-    playNextQueuedAudio()
-  })
+  isAudioPlayingRef.current = false
+
+  if (currentAudioSrcRef.current === "/system/finish.mp3") {
+    setReleaseCompleted(true)
+  }
+
+  playNextQueuedAudio()
+})
 
   player.addEventListener("error", () => {
     isAudioPlayingRef.current = false
@@ -382,6 +391,36 @@ useEffect(() => {
           Tocca per accedere alla procedura di partenza e attivare l’audio dei Team.
         </div>
       </button>
+    </main>
+  )
+}
+
+if (releaseCompleted) {
+  return (
+    <main className="flex h-dvh w-screen items-center justify-center bg-black px-8 text-center text-white">
+      <div>
+        <Image
+          src="/endurance/logo.png"
+          alt="PRT Endurance"
+          width={140}
+          height={140}
+          className="mx-auto mb-8 object-contain"
+        />
+
+        <div className="mb-6 text-2xl font-black uppercase tracking-[0.25em] text-emerald-400">
+          Race Control
+        </div>
+
+        <div className="mb-8 text-4xl font-black">
+          Procedura di rilascio completata
+        </div>
+
+        <div className="max-w-sm text-lg leading-relaxed text-zinc-400">
+          Tutti i Team sono stati rilasciati.
+          <br />
+          Buona gara.
+        </div>
+      </div>
     </main>
   )
 }
