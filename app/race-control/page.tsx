@@ -84,6 +84,7 @@ const [activeTeam, setActiveTeam] = useState<ReleaseRow | null>(null)
   const lastHeartbeatRef = useRef(0)
   const finishQueuedRef = useRef(false)
   const heartbeatSinceLastTeamRef = useRef(false)
+  const releasedTeamsRef = useRef<string[]>([])
 
   useEffect(() => {
     try {
@@ -106,6 +107,10 @@ const [activeTeam, setActiveTeam] = useState<ReleaseRow | null>(null)
     }
   }, [])
 
+  useEffect(() => {
+  releasedTeamsRef.current = releasedTeams
+}, [releasedTeams])
+  
   useEffect(() => {
     if (!running) return
 
@@ -155,6 +160,7 @@ const [activeTeam, setActiveTeam] = useState<ReleaseRow | null>(null)
             releaseTime: nextTeam.releaseTime,
           }
         : null,
+        calledTeams: releasedTeamsRef.current,
       audioEvent,
       updatedAt: Date.now(),
     }),
@@ -321,13 +327,14 @@ enqueueAudio(
         }
       : null,
     nextTeam: nextTeam
-      ? {
-          teamNumber: nextTeam.teamNumber,
-          releaseTime: nextTeam.releaseTime,
-        }
-      : null,
-    audioEvent: liveAudioEvent,
-    updatedAt: Date.now(),
+  ? {
+      teamNumber: nextTeam.teamNumber,
+      releaseTime: nextTeam.releaseTime,
+    }
+  : null,
+calledTeams: releasedTeams,
+audioEvent: liveAudioEvent,
+updatedAt: Date.now(),
   }
 
   fetch("/api/endurance-live", {
@@ -337,7 +344,15 @@ enqueueAudio(
     },
     body: JSON.stringify(payload),
   }).catch(() => {})
-}, [running, starting, preparing, activeTeam, nextTeam, liveAudioEvent])
+}, [
+  running,
+  starting,
+  preparing,
+  activeTeam,
+  nextTeam,
+  releasedTeams,
+  liveAudioEvent,
+])
   useEffect(() => {
     if (!running) return
     if (!nextTeam) return
@@ -466,6 +481,7 @@ heartbeatSinceLastTeamRef.current = true
               setTimerMs(0)
               setActiveTeam(null)
               setReleasedTeams([])
+              releasedTeamsRef.current = []
               setReleasedLog([])
               setSpokenTeams([])
               startRef.current = null

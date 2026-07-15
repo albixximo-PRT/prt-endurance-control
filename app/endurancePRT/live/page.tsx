@@ -8,6 +8,7 @@ type LiveState = {
   status: "READY" | "WAITING" | "GO" | "STARTING" | "ARMED" | "PREPARING"
   activeTeam: { teamNumber: string; releaseTime: string } | null
   nextTeam: { teamNumber: string; releaseTime: string } | null
+  calledTeams: string[]
   audioEvent: { id: string; src: string; volume: number } | null
   updatedAt: number
 }
@@ -89,6 +90,7 @@ audio.play().catch(() => {})
   const nextTeam = state?.nextTeam?.teamNumber || "--"
   const isGo = Boolean(state?.activeTeam)
 const isPreparing = state?.status === "PREPARING"
+const calledTeams = state?.calledTeams ?? []
 
   if (showSplash) {
   return (
@@ -210,6 +212,23 @@ if (
           </div>
         </section>
 
+        <div className="mb-4 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-4">
+  <div className="mb-3 text-[10px] font-black uppercase tracking-[0.32em] text-zinc-400">
+    Team rilasciati
+  </div>
+
+  <div className="flex min-h-12 flex-wrap justify-center gap-2">
+    {calledTeams.map((teamNumber, index) => (
+      <div
+        key={`${teamNumber}-${index}`}
+        className="flex h-11 min-w-11 items-center justify-center rounded-xl border border-white/15 bg-white/10 px-3 text-xl font-black text-white"
+      >
+        {teamNumber}
+      </div>
+    ))}
+  </div>
+</div>
+        
         <footer className="w-full rounded-[2rem] border border-white/10 bg-white/5 px-5 py-5">
           <div className="text-[10px] font-black uppercase tracking-[0.35em] text-zinc-400">
             Prossimo Team
