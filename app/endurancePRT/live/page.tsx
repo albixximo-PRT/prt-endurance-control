@@ -220,12 +220,20 @@ if (
 }
 
   return (
-    <main
-      className={`h-dvh w-screen overflow-hidden text-white transition-colors duration-150 ${
-        isGo ? "bg-emerald-600" : "bg-black"
-      }`}
+  <main
+    className={`h-dvh w-screen overflow-hidden text-white transition-colors duration-150 ${
+      isGo ? "bg-emerald-600" : "bg-black"
+    }`}
+  >
+    <button
+      type="button"
+      onClick={() => window.location.reload()}
+      className="fixed right-4 top-4 z-50 rounded-xl border border-white/15 bg-black/50 px-3 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-white backdrop-blur active:scale-95"
     >
-      <div className="flex h-full w-full flex-col items-center justify-between px-5 py-7 text-center">
+      ↻ Refresh
+    </button>
+
+    <div className="flex h-full w-full flex-col items-center justify-between px-5 py-7 text-center">
         <header className="w-full">
           <div className="text-[10px] font-black uppercase tracking-[0.45em] text-zinc-400">
             PRT Endurance
