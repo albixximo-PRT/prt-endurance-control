@@ -422,7 +422,7 @@ if (releaseCompleted) {
         </div>
         <button
   onClick={() => window.location.reload()}
-  className="mt-10 rounded-2xl border border-yellow-200/70 bg-gradient-to-b from-yellow-200 via-amber-400 to-yellow-700 px-8 py-4 text-lg font-black uppercase tracking-[0.2em] text-black shadow-[0_0_30px_rgba(251,191,36,0.45)] active:scale-[0.98]"
+  className="mt-6 rounded-xl border border-yellow-200/70 bg-gradient-to-b from-yellow-200 via-amber-400 to-yellow-700 px-5 py-2 text-sm font-black uppercase tracking-[0.18em] text-black shadow-[0_0_20px_rgba(251,191,36,0.35)] active:scale-[0.98]"
 >
   Nuova procedura
 </button>
