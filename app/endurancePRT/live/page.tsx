@@ -21,6 +21,8 @@ export default function EnduranceLivePage() {
   const [localNow, setLocalNow] = useState(Date.now())
   const lastAudioIdRef = useRef<string | null>(null)
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null)
+  const tickPlayerRef = useRef<HTMLAudioElement | null>(null)
+const lastTickSecondRef = useRef<number | null>(null)
 
 const audioQueueRef = useRef<
   Array<{
@@ -87,8 +89,26 @@ player.setAttribute("playsinline", "true")
 
   audioPlayerRef.current = player
 
-  // Brevissimo audio silenzioso per sbloccare Safari iPhone
-  player.src =
+  const tickPlayer = new Audio("/system/tick.wav")
+
+tickPlayer.preload = "auto"
+tickPlayer.setAttribute("playsinline", "true")
+;(tickPlayer as any).playsInline = true
+
+tickPlayerRef.current = tickPlayer
+
+tickPlayer.volume = 0
+
+try {
+  await tickPlayer.play()
+  tickPlayer.pause()
+  tickPlayer.currentTime = 0
+} catch {}
+
+tickPlayer.volume = 1
+
+// Brevissimo audio silenzioso per sbloccare Safari iPhone
+player.src =
     "data:audio/wav;base64,UklGRjQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YRAAAAAAgICAgICAgICAgIA="
 
   player.volume = 0
@@ -173,6 +193,13 @@ useEffect(() => {
   if (!audioEnabled) return
   if (!state?.audioEvent) return
   if (lastAudioIdRef.current === state.audioEvent.id) return
+  if (
+  state.audioEvent.src === "/system/tick.wav" &&
+  state.running
+) {
+  lastAudioIdRef.current = state.audioEvent.id
+  return
+}
 
   lastAudioIdRef.current = state.audioEvent.id
 
@@ -194,6 +221,17 @@ useEffect(() => {
       player.removeAttribute("src")
       player.load()
     }
+
+    const tickPlayer = tickPlayerRef.current
+
+if (tickPlayer) {
+  tickPlayer.pause()
+  tickPlayer.removeAttribute("src")
+  tickPlayer.load()
+}
+
+tickPlayerRef.current = null
+lastTickSecondRef.current = null
 
     audioQueueRef.current = []
     audioPlayerRef.current = null
@@ -230,6 +268,33 @@ const localTimerMs = timerSyncRef.current
   : state?.timerMs ?? 0
 
 const timeToNextGo = nextReleaseMs - localTimerMs
+
+useEffect(() => {
+  if (!audioEnabled || !state?.running || isGo || timeToNextGo <= 0) {
+    lastTickSecondRef.current = null
+    return
+  }
+
+  const currentSecond = Math.floor(timeToNextGo / 1000)
+
+  // Se sta parlando la voce del Team, saltiamo il beep
+  if (isAudioPlayingRef.current) {
+    lastTickSecondRef.current = currentSecond
+    return
+  }
+
+  if (lastTickSecondRef.current === currentSecond) return
+
+  lastTickSecondRef.current = currentSecond
+
+  const tickPlayer = tickPlayerRef.current
+
+  if (!tickPlayer) return
+
+  tickPlayer.currentTime = 0
+
+  tickPlayer.play().catch(() => {})
+}, [audioEnabled, state?.running, isGo, timeToNextGo])
 
   if (showSplash) {
   return (
