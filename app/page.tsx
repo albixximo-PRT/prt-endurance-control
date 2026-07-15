@@ -1852,7 +1852,7 @@ const isThird = index === 2
                   return (
                     <tr
                       key={`export-${team.teamNumber}`}
-                      className={`h-[46px] ${
+                      className={`h-[54px] ${
   isFirst
     ? "bg-[linear-gradient(90deg,rgba(234,179,8,0.18),rgba(234,179,8,0.04),transparent)]"
     : isSecond
