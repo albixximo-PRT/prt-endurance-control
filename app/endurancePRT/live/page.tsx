@@ -20,6 +20,17 @@ export default function EnduranceLivePage() {
   const [showSplash, setShowSplash] = useState(true)
   const [localNow, setLocalNow] = useState(Date.now())
   const lastAudioIdRef = useRef<string | null>(null)
+  const audioPlayerRef = useRef<HTMLAudioElement | null>(null)
+
+const audioQueueRef = useRef<
+  Array<{
+    id: string
+    src: string
+    volume: number
+  }>
+>([])
+
+const isAudioPlayingRef = useRef(false)
   const timerSyncRef = useRef<{
   timerMs: number
   receivedAt: number
@@ -32,6 +43,65 @@ async function requestWakeLock() {
       wakeLockRef.current = await (navigator as any).wakeLock.request("screen")
     }
   } catch {}
+}
+
+function playNextQueuedAudio() {
+  const player = audioPlayerRef.current
+
+  if (!player) return
+  if (isAudioPlayingRef.current) return
+
+  const nextAudio = audioQueueRef.current.shift()
+
+  if (!nextAudio) return
+
+  isAudioPlayingRef.current = true
+
+  player.src = nextAudio.src
+  player.volume = nextAudio.volume ?? 1
+  player.load()
+
+  player.play().catch(() => {
+    isAudioPlayingRef.current = false
+  })
+}
+
+async function unlockPersistentAudioPlayer() {
+  if (audioPlayerRef.current) return
+
+  const player = new Audio()
+
+player.preload = "auto"
+player.setAttribute("playsinline", "true")
+;(player as any).playsInline = true
+
+  player.addEventListener("ended", () => {
+    isAudioPlayingRef.current = false
+    playNextQueuedAudio()
+  })
+
+  player.addEventListener("error", () => {
+    isAudioPlayingRef.current = false
+    playNextQueuedAudio()
+  })
+
+  audioPlayerRef.current = player
+
+  // Brevissimo audio silenzioso per sbloccare Safari iPhone
+  player.src =
+    "data:audio/wav;base64,UklGRjQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YRAAAAAAgICAgICAgICAgIA="
+
+  player.volume = 0
+
+  try {
+    await player.play()
+    player.pause()
+    player.currentTime = 0
+  } catch {}
+
+  player.removeAttribute("src")
+  player.load()
+  player.volume = 1
 }
 
 useEffect(() => {
@@ -100,16 +170,36 @@ useEffect(() => {
 }, [audioEnabled])
 
   useEffect(() => {
-    if (!audioEnabled) return
-    if (!state?.audioEvent) return
-    if (lastAudioIdRef.current === state.audioEvent.id) return
+  if (!audioEnabled) return
+  if (!state?.audioEvent) return
+  if (lastAudioIdRef.current === state.audioEvent.id) return
 
-    lastAudioIdRef.current = state.audioEvent.id
+  lastAudioIdRef.current = state.audioEvent.id
 
-    const audio = new Audio(state.audioEvent.src)
-audio.volume = state.audioEvent.volume ?? 1
-audio.play().catch(() => {})
-  }, [audioEnabled, state?.audioEvent])
+  audioQueueRef.current.push({
+    id: state.audioEvent.id,
+    src: state.audioEvent.src,
+    volume: state.audioEvent.volume ?? 1,
+  })
+
+  playNextQueuedAudio()
+}, [audioEnabled, state?.audioEvent])
+
+useEffect(() => {
+  return () => {
+    const player = audioPlayerRef.current
+
+    if (player) {
+      player.pause()
+      player.removeAttribute("src")
+      player.load()
+    }
+
+    audioQueueRef.current = []
+    audioPlayerRef.current = null
+    isAudioPlayingRef.current = false
+  }
+}, [])
 
   const shownTeam =
   state?.activeTeam?.teamNumber ||
@@ -162,10 +252,13 @@ const timeToNextGo = nextReleaseMs - localTimerMs
     <main className="flex h-dvh w-screen items-center justify-center overflow-hidden bg-black px-6 text-white">
       <button
         onClick={async () => {
-          lastAudioIdRef.current = state?.audioEvent?.id ?? null
-          setAudioEnabled(true)
-          await requestWakeLock()
-        }}
+  lastAudioIdRef.current = state?.audioEvent?.id ?? null
+
+  await unlockPersistentAudioPlayer()
+
+  setAudioEnabled(true)
+  await requestWakeLock()
+}}
         className="flex h-full w-full flex-col items-center justify-center text-center active:scale-[0.98]"
       >
         <Image
