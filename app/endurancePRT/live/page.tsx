@@ -199,16 +199,8 @@ if (
   state?.status !== "PREPARING"
 ) {
   return (
-    <main className="relative flex h-dvh w-screen items-center justify-center bg-black px-8 text-center text-white">
-      <button
-        type="button"
-        onClick={() => window.location.reload()}
-        className="absolute left-1/2 top-10 -translate-x-1/2 rounded-2xl border border-white/15 bg-white/10 px-8 py-4 text-base font-black uppercase tracking-[0.25em] text-white shadow-lg active:scale-95"
-      >
-        ↻ Refresh
-      </button>
-
-      <div>
+    <main className="flex h-dvh w-screen items-center justify-center bg-black px-8 text-center text-white">
+  <div>
         <div className="mb-6 text-2xl font-black uppercase tracking-[0.25em] text-amber-400">
           Race Control
         </div>
@@ -221,10 +213,6 @@ if (
           Rimani in attesa.
           <br />
           La Direzione Gara avvierà a breve la sequenza di partenza.
-        </div>
-
-        <div className="mt-10 max-w-md text-sm font-bold leading-relaxed text-zinc-500">
-          Attendi che l’Host comunichi il momento corretto per aggiornare la pagina e riattivare il Race Control.
         </div>
       </div>
     </main>

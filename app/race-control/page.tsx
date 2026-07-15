@@ -476,26 +476,13 @@ heartbeatSinceLastTeamRef.current = true
           </button>
 
           <button
-            onClick={() => {
-              setRunning(false)
-              setTimerMs(0)
-              setActiveTeam(null)
-              setReleasedTeams([])
-              releasedTeamsRef.current = []
-              setReleasedLog([])
-              setSpokenTeams([])
-              startRef.current = null
-              audioQueueRef.current = []
-              audioPlayingRef.current = false
-              initializedRef.current = false
-              lastHeartbeatRef.current = 0
-              finishQueuedRef.current = false
-              heartbeatSinceLastTeamRef.current = false
-            }}
-            className="rounded-xl bg-red-500 px-6 py-3 text-xl font-black text-black"
-          >
-            RESET
-          </button>
+  onClick={() => {
+    window.location.reload()
+  }}
+  className="rounded-xl bg-red-500 px-6 py-3 text-xl font-black text-black"
+>
+  RESET
+</button>
         </div>
 
         <div className="grid min-h-0 w-full flex-1 grid-cols-1 gap-4 md:grid-cols-2">
