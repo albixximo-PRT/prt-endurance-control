@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react"
 
 type LiveState = {
   running: boolean
+  timerMs: number
   status: "READY" | "WAITING" | "GO" | "STARTING" | "ARMED" | "PREPARING"
   activeTeam: { teamNumber: string; releaseTime: string } | null
   nextTeam: { teamNumber: string; releaseTime: string } | null
@@ -17,6 +18,7 @@ export default function EnduranceLivePage() {
   const [state, setState] = useState<LiveState | null>(null)
   const [audioEnabled, setAudioEnabled] = useState(false)
   const [showSplash, setShowSplash] = useState(true)
+  const [localNow, setLocalNow] = useState(Date.now())
   const lastAudioIdRef = useRef<string | null>(null)
   const wakeLockRef = useRef<any>(null)
 
@@ -35,6 +37,14 @@ useEffect(() => {
 
   return () => clearTimeout(timer)
 }, [])  
+
+useEffect(() => {
+  const interval = window.setInterval(() => {
+    setLocalNow(Date.now())
+  }, 100)
+
+  return () => window.clearInterval(interval)
+}, [])
 
 useEffect(() => {
     const interval = window.setInterval(async () => {
@@ -91,6 +101,21 @@ audio.play().catch(() => {})
   const isGo = Boolean(state?.activeTeam)
 const isPreparing = state?.status === "PREPARING"
 const calledTeams = state?.calledTeams ?? []
+const nextReleaseTime = state?.nextTeam?.releaseTime ?? ""
+const cleanNextReleaseTime = nextReleaseTime.replace("+", "").trim()
+
+const mmssMatch = cleanNextReleaseTime.match(/^(\d+):(\d{2})\.(\d{3})$/)
+const ssMatch = cleanNextReleaseTime.match(/^(\d+)\.(\d{3})$/)
+
+const nextReleaseMs = mmssMatch
+  ? Number(mmssMatch[1]) * 60000 +
+    Number(mmssMatch[2]) * 1000 +
+    Number(mmssMatch[3])
+  : ssMatch
+    ? Number(ssMatch[1]) * 1000 + Number(ssMatch[2])
+    : 0
+
+const timeToNextGo = nextReleaseMs - (state?.timerMs ?? 0)
 
   if (showSplash) {
   return (
@@ -230,14 +255,32 @@ if (
 </div>
         
         <footer className="w-full rounded-[2rem] border border-white/10 bg-white/5 px-5 py-5">
-          <div className="text-[10px] font-black uppercase tracking-[0.35em] text-zinc-400">
-            Prossimo Team
-          </div>
+  <div className="text-[10px] font-black uppercase tracking-[0.35em] text-zinc-400">
+    Prossima partenza
+  </div>
 
-          <div className="mt-2 text-4xl font-black leading-none">
-            {nextTeam}
-          </div>
-        </footer>
+  <div
+  className={`mt-2 text-4xl font-black leading-none ${
+    isGo
+      ? "text-white"
+      : timeToNextGo > 6000
+        ? "text-white"
+        : timeToNextGo > 3000
+          ? "text-red-500"
+          : timeToNextGo > 1000
+            ? "text-orange-400"
+            : "text-transparent"
+  }`}
+>
+  {isGo
+    ? "START"
+    : timeToNextGo > 1000
+      ? `${Math.floor(timeToNextGo / 1000)}.${String(
+          Math.floor((timeToNextGo % 1000) / 100)
+        )}`
+      : ""}
+</div>
+</footer>
       </div>
     </main>
   )
