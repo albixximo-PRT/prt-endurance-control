@@ -400,12 +400,12 @@ if (releaseCompleted) {
     <main className="flex h-dvh w-screen items-center justify-center bg-black px-8 text-center text-white">
       <div>
         <Image
-          src="/endurance/logo.png"
-          alt="PRT Endurance"
-          width={140}
-          height={140}
-          className="mx-auto mb-8 object-contain"
-        />
+  src="/endurance/endurance-division-logo.png"
+  alt="PRT Endurance"
+  width={220}
+  height={220}
+  className="-mt-12 mx-auto mb-6 object-contain"
+/>
 
         <div className="mb-6 text-2xl font-black uppercase tracking-[0.25em] text-emerald-400">
           Race Control
