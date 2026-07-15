@@ -420,6 +420,16 @@ if (releaseCompleted) {
           <br />
           Buona gara.
         </div>
+        <button
+  onClick={() => window.location.reload()}
+  className="mt-10 rounded-2xl border border-yellow-200/70 bg-gradient-to-b from-yellow-200 via-amber-400 to-yellow-700 px-8 py-4 text-lg font-black uppercase tracking-[0.2em] text-black shadow-[0_0_30px_rgba(251,191,36,0.45)] active:scale-[0.98]"
+>
+  Nuova procedura
+</button>
+
+<div className="mt-4 text-sm font-bold text-zinc-500">
+  In attesa dell’avvio del prossimo stint
+</div>
       </div>
     </main>
   )
