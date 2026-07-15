@@ -41,7 +41,7 @@ useEffect(() => {
 useEffect(() => {
   const interval = window.setInterval(() => {
     setLocalNow(Date.now())
-  }, 100)
+  }, 16)
 
   return () => window.clearInterval(interval)
 }, [])
@@ -115,7 +115,15 @@ const nextReleaseMs = mmssMatch
     ? Number(ssMatch[1]) * 1000 + Number(ssMatch[2])
     : 0
 
-const timeToNextGo = nextReleaseMs - (state?.timerMs ?? 0)
+const elapsedSinceUpdate =
+  state?.running && state?.updatedAt
+    ? Math.max(0, localNow - state.updatedAt)
+    : 0
+
+const estimatedTimerMs =
+  (state?.timerMs ?? 0) + elapsedSinceUpdate
+
+const timeToNextGo = nextReleaseMs - estimatedTimerMs
 
   if (showSplash) {
   return (
@@ -275,10 +283,10 @@ if (
   {isGo
     ? "START"
     : timeToNextGo > 1000
-      ? `${Math.floor(timeToNextGo / 1000)}.${String(
-          Math.floor((timeToNextGo % 1000) / 100)
-        )}`
-      : ""}
+  ? `${Math.floor(timeToNextGo / 1000)}.${String(
+      Math.floor(timeToNextGo % 1000)
+    ).padStart(3, "0")}`
+  : ""}
 </div>
 </footer>
       </div>
