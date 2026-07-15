@@ -199,7 +199,15 @@ if (
   state?.status !== "PREPARING"
 ) {
   return (
-    <main className="flex h-dvh w-screen items-center justify-center bg-black px-8 text-center text-white">
+    <main className="relative flex h-dvh w-screen items-center justify-center bg-black px-8 text-center text-white">
+      <button
+        type="button"
+        onClick={() => window.location.reload()}
+        className="absolute left-1/2 top-10 -translate-x-1/2 rounded-2xl border border-white/15 bg-white/10 px-8 py-4 text-base font-black uppercase tracking-[0.25em] text-white shadow-lg active:scale-95"
+      >
+        ↻ Refresh
+      </button>
+
       <div>
         <div className="mb-6 text-2xl font-black uppercase tracking-[0.25em] text-amber-400">
           Race Control
@@ -214,26 +222,22 @@ if (
           <br />
           La Direzione Gara avvierà a breve la sequenza di partenza.
         </div>
+
+        <div className="mt-10 max-w-md text-sm font-bold leading-relaxed text-zinc-500">
+          Attendi che l’Host comunichi il momento corretto per aggiornare la pagina e riattivare il Race Control.
+        </div>
       </div>
     </main>
   )
 }
 
   return (
-  <main
-    className={`h-dvh w-screen overflow-hidden text-white transition-colors duration-150 ${
-      isGo ? "bg-emerald-600" : "bg-black"
-    }`}
-  >
-    <button
-      type="button"
-      onClick={() => window.location.reload()}
-      className="fixed right-4 top-4 z-50 rounded-xl border border-white/15 bg-black/50 px-3 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-white backdrop-blur active:scale-95"
+    <main
+      className={`h-dvh w-screen overflow-hidden text-white transition-colors duration-150 ${
+        isGo ? "bg-emerald-600" : "bg-black"
+      }`}
     >
-      ↻ Refresh
-    </button>
-
-    <div className="flex h-full w-full flex-col items-center justify-between px-5 py-7 text-center">
+      <div className="flex h-full w-full flex-col items-center justify-between px-5 py-7 text-center">
         <header className="w-full">
           <div className="text-[10px] font-black uppercase tracking-[0.45em] text-zinc-400">
             PRT Endurance
